@@ -63,3 +63,24 @@ export async function runSchemeMatch(userId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+
+// Add this to schemesApi.ts
+
+export async function getAllSchemes(searchQuery?: string): Promise<Scheme[]> {
+  let query = supabase
+    .from('schemes')
+    .select('*')
+    .eq('status', 'active')
+    .order('title', { ascending: true });
+
+  // simple text search across title/description — fine for MVP;
+  // your pgvector similarity search is a separate, smarter feature for later
+  if (searchQuery && searchQuery.trim().length > 0) {
+    query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}

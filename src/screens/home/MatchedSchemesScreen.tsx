@@ -8,7 +8,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
 import { HomeStackParamList } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'MatchedSchemes'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'AllMatchedSchemes'>;
 
 export default function MatchedSchemesScreen({ navigation }: Props) {
   const { user } = useAuth();
