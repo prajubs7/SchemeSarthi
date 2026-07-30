@@ -10,7 +10,6 @@ export function useSchemeMatches(userId: string | undefined) {
   });
 }
 
-
 export function useAllSchemes(searchQuery?: string) {
   return useQuery({
     queryKey: ['allSchemes', searchQuery],

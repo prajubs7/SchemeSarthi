@@ -1,5 +1,11 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from 'react-native';
 import { colors } from '../../constants/colors';
 
 interface ButtonProps {
@@ -23,7 +29,12 @@ export default function Button({
 
   return (
     <TouchableOpacity
-      style={[styles.base, isOutline ? styles.outline : styles.primary, (disabled || loading) && styles.disabled, style]}
+      style={[
+        styles.base,
+        isOutline ? styles.outline : styles.primary,
+        (disabled || loading) && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
@@ -31,7 +42,9 @@ export default function Button({
       {loading ? (
         <ActivityIndicator color={isOutline ? colors.primary : '#fff'} />
       ) : (
-        <Text style={isOutline ? styles.outlineText : styles.primaryText}>{title}</Text>
+        <Text style={isOutline ? styles.outlineText : styles.primaryText}>
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -45,7 +58,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primary: { backgroundColor: colors.primary },
-  outline: { borderWidth: 1.5, borderColor: colors.primary, backgroundColor: 'transparent' },
+  outline: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: 'transparent',
+  },
   disabled: { opacity: 0.5 },
   primaryText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   outlineText: { color: colors.primary, fontWeight: '600', fontSize: 16 },
