@@ -19,5 +19,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 6,
   },
-  text: { color: colors.primary, fontSize: 12, fontWeight: '600' },
+  text: { 
+    color: colors.primary, 
+    fontSize: 12, 
+    fontWeight: '600' 
+  },
 });

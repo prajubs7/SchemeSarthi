@@ -22,7 +22,9 @@ export default function SchemeCard({
           {scheme.benefit_summary ?? scheme.description}
         </Text>
         <View style={styles.footerRow}>
-          <Text style={styles.levelTag}>{scheme.scheme_level === 'central' ? 'Central' : 'State'}</Text>
+          <Text style={styles.levelTag}>
+            {scheme.scheme_level === 'central' ? 'Central' : 'State'}
+          </Text>
           {scheme.status === 'needs_verification' && (
             <Text style={styles.verifyTag}>Please verify latest details</Text>
           )}
@@ -33,10 +35,28 @@ export default function SchemeCard({
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, flex: 1 },
-  newDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, marginLeft: 8 },
-  summary: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  newDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+    marginLeft: 8,
+  },
+  summary: { 
+    fontSize: 14, 
+    color: colors.textSecondary, 
+    marginTop: 6 },
   footerRow: { flexDirection: 'row', marginTop: 10, gap: 8 },
   levelTag: {
     fontSize: 12,
