@@ -1,13 +1,19 @@
+import { colors as tokens } from '../theme/colors';
+
+/**
+ * @deprecated Use `colors` from `src/theme` instead. This maps the legacy keys to the new
+ * design tokens so existing screens keep compiling until they are migrated.
+ */
 export const colors = {
-  primary: '#1B5E20', // deep green — trust, civic/government tone
-  primaryLight: '#4C8C4A',
-  accent: '#F9A825', // warm amber for CTAs / "new" indicators
-  background: '#FAFAFA',
-  surface: '#FFFFFF',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#666666',
-  border: '#E0E0E0',
-  success: '#2E7D32',
-  warning: '#ED6C02',
-  error: '#C62828',
+  primary: tokens.primary,
+  primaryLight: tokens.primarySoft,
+  accent: tokens.accent,
+  background: tokens.background,
+  surface: tokens.surface,
+  textPrimary: tokens.text,
+  textSecondary: tokens.textSecondary,
+  border: tokens.border,
+  success: tokens.success,
+  warning: tokens.warning,
+  error: tokens.danger,
 };

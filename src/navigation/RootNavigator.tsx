@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import AuthStack from './AuthStack';
 import MainTabNavigator from './MainTabNavigator';
-import { colors } from '../constants/colors';
+import { colors, navigationTheme } from '../theme';
 
 export default function RootNavigator() {
   const { session, loading } = useAuth();
@@ -19,5 +19,5 @@ export default function RootNavigator() {
     );
   }
 
-  return <NavigationContainer>{session ? <MainTabNavigator /> : <AuthStack />}</NavigationContainer>;
+  return <NavigationContainer theme={navigationTheme}>{session ? <MainTabNavigator /> : <AuthStack />}</NavigationContainer>;
 }
