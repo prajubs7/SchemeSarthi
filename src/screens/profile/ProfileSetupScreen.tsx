@@ -100,7 +100,6 @@ export default function ProfileSetupScreen({ navigation }: any) {
   }, [existingProfile]);
 
   const handleSubmit = async () => {
-    console.log("Save form to complete", )
     if (!user) return;
     if (!age || !occupation || !state || !gender || !category) {
       Alert.alert(
@@ -214,17 +213,16 @@ const styles = StyleSheet.create({
   title: { 
     fontSize: 22, 
     fontWeight: '700', 
-    color: 'redsss'
+    color: colors.textPrimary
   },
   subtitle: {
-    fontSize:25 ,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     marginBottom: 20,
   },
   fieldGroup: { 
-    marginBottom: 18 ,
-    backgroundColor:'red',
+    marginBottom: 18,
   },
   fieldLabel: {
     fontSize: 13.5,

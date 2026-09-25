@@ -30,7 +30,7 @@ export interface Scheme {
 
 export interface MatchedScheme extends Scheme {
   match_score: number | null;
-  match_reason: Record<string, boolean | string> | null;
+  match_reason: Record<string, { required: unknown; actual: unknown; pass: boolean; unverified?: boolean }> | null;
   viewed: boolean;
 }
 
