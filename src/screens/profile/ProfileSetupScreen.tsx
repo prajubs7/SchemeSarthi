@@ -13,7 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { upsertProfile } from '../../services/profileApi';
 import { runSchemeMatch } from '../../services/schemesApi';
 import { setProfile } from '../../store/slices/profileSlice';
-import Button from '../../components/common/Button';
+import { Button } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { RootState } from '../../store';
 

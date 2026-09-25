@@ -2,8 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
-import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
+import { Button, Card } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { RootState } from '../../store';
 
@@ -13,13 +12,13 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Card>
+      <Card style={styles.card}>
         <Text style={styles.label}>Email</Text>
         <Text style={styles.value}>{user?.email}</Text>
       </Card>
 
       {profile ? (
-        <Card>
+        <Card style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.label}>Age</Text>
             <Text style={styles.value}>{profile.age}</Text>
@@ -67,6 +66,16 @@ export default function ProfileScreen({ navigation }: any) {
         onPress={signOut}
         style={{ marginTop: 12 }}
       />
+
+      {__DEV__ && (
+        <Button
+          title="Component gallery (dev)"
+          variant="ghost"
+          leftIcon="color-palette-outline"
+          onPress={() => navigation.navigate('ComponentGallery')}
+          style={styles.card}
+        />
+      )}
     </View>
   );
 }
@@ -87,6 +96,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   row: { marginBottom: 12 },
+  card: { marginBottom: 12 },
   nudgeCard: { 
     backgroundColor: '#FFF3E0', 
     borderColor: colors.warning 

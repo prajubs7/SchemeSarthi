@@ -3,9 +3,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { useBookmarks } from '../../hooks/useBookmarks';
-import Card from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import EmptyState from '../../components/common/EmptyState';
+import { Card, EmptyState, LoadingSpinner } from '../../components/ui';
 import { colors } from '../../constants/colors';
 
 export default function BookmarksScreen() {
@@ -34,7 +32,7 @@ export default function BookmarksScreen() {
             })
           }
         >
-          <Card>
+          <Card style={styles.card}>
             <Text style={styles.title}>{item.schemes.title}</Text>
             <Text style={styles.summary} numberOfLines={2}>
               {item.schemes.benefit_summary ?? item.schemes.description}
@@ -48,6 +46,7 @@ export default function BookmarksScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  card: { marginBottom: 12 },
   title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   summary: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 });

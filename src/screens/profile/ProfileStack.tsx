@@ -8,6 +8,7 @@ import ProfileSetupScreen from './ProfileSetupScreen';
 export type ProfileStackParamList = {
   ProfileView: undefined;
   ProfileSetup: undefined;
+  ComponentGallery: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -22,6 +23,13 @@ export default function ProfileStack() {
     >
       <Stack.Screen name="ProfileView" component={ProfileScreen} options={{ title: 'Profile' }} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} options={{ title: 'Edit Profile' }} />
+      {__DEV__ && (
+        <Stack.Screen
+          name="ComponentGallery"
+          getComponent={() => require('../dev/ComponentGallery').default}
+          options={{ title: 'Component Gallery' }}
+        />
+      )}
     </Stack.Navigator>
   );
 }

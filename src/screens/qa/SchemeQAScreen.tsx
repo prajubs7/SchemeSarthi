@@ -3,7 +3,7 @@ import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { askSchemeQuestion, setQaHelpful } from '../../services/qaApi';
-import Button from '../../components/common/Button';
+import { Button } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { HomeStackParamList } from '../../navigation/types';
 

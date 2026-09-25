@@ -12,9 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSchemeMatches } from '../../hooks/useSchemeMatches';
 import { useBookmarks } from '../../hooks/useBookmarks';
 
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { Button, Card, LoadingSpinner } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { RootState } from '../../store';
 import { HomeStackParamList } from '../../navigation/types';
