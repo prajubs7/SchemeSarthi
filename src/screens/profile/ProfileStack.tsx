@@ -2,7 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../../constants/colors';
 import ProfileScreen from './ProfileScreen';
-import ProfileSetupScreen from '../onboarding/ProfileSetupScreen';
+import ProfileSetupScreen from './ProfileSetupScreen';
 
 
 export type ProfileStackParamList = {

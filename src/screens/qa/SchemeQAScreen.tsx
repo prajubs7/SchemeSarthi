@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import { askSchemeQuestion } from '../../services/qaApi';
+import { askSchemeQuestion, setQaHelpful } from '../../services/qaApi';
 import Button from '../../components/common/Button';
 import { colors } from '../../constants/colors';
 import { HomeStackParamList } from '../../navigation/types';
@@ -13,6 +13,9 @@ interface QaTurn {
   question: string;
   answer: string;
   wasGrounded: boolean;
+  logId?: string;
+  modelUsed?: string;
+  helpful?: boolean | null;
 }
 
 export default function SchemeQAScreen({ route }: Props) {
@@ -28,12 +31,16 @@ export default function SchemeQAScreen({ route }: Props) {
     setLoading(true);
     try {
       const result = await askSchemeQuestion(user.id, schemeId, question);
-      setHistory((prev) => [...prev, { question, answer: result.answer, wasGrounded: result.was_grounded }]);
+      setHistory((prev) => [...prev, {
+        question, answer: result.answer, wasGrounded: result.was_grounded,
+        logId: result.id, modelUsed: result.model_used, helpful: result.helpful,
+      }]);
       setQuestion('');
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Please check your connection and try again.';
       setHistory((prev) => [
         ...prev,
-        { question, answer: 'Sorry, something went wrong answering that. Please try again.', wasGrounded: false },
+        { question, answer: `Sorry, I couldn't answer that: ${message}`, wasGrounded: false },
       ]);
     } finally {
       setLoading(false);
@@ -50,6 +57,29 @@ export default function SchemeQAScreen({ route }: Props) {
           <View style={styles.turn}>
             <Text style={styles.question}>{item.question}</Text>
             <Text style={styles.answer}>{item.answer}</Text>
+            {item.modelUsed && <Text style={styles.model}>Answered by {item.modelUsed}</Text>}
+            {item.logId && (
+              <View style={styles.feedbackRow}>
+                <Text style={styles.feedbackLabel}>Was this helpful?</Text>
+                {([true, false] as const).map((helpful) => (
+                  <TouchableOpacity
+                    key={String(helpful)}
+                    accessibilityRole="button"
+                    accessibilityLabel={helpful ? 'Helpful' : 'Not helpful'}
+                    disabled={item.helpful === helpful}
+                    onPress={async () => {
+                      try {
+                        await setQaHelpful(item.logId!, helpful);
+                        setHistory((prev) => prev.map((turn) => turn.logId === item.logId ? { ...turn, helpful } : turn));
+                      } catch { /* Keep the current feedback state if the update fails. */ }
+                    }}
+                    style={[styles.voteButton, item.helpful === helpful && styles.selectedVote]}
+                  >
+                    <Text style={styles.voteText}>{helpful ? '👍' : '👎'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
             {!item.wasGrounded && (
               <Text style={styles.disclaimer}>
                 ⓘ Couldn't confirm this from official scheme details — verify on the official link.
@@ -85,6 +115,12 @@ const styles = StyleSheet.create({
   question: { fontSize: 14, fontWeight: '700', color: colors.primary, marginBottom: 6 },
   answer: { fontSize: 14, color: colors.textPrimary, lineHeight: 20 },
   disclaimer: { fontSize: 12, color: colors.warning, marginTop: 6, fontStyle: 'italic' },
+  model: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
+  feedbackRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  feedbackLabel: { fontSize: 12, color: colors.textSecondary, marginRight: 8 },
+  voteButton: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: 4 },
+  selectedVote: { backgroundColor: colors.border },
+  voteText: { fontSize: 16 },
   emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
   inputRow: {
     flexDirection: 'row',
