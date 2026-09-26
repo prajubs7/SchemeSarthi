@@ -56,12 +56,14 @@ export async function markSchemeViewed(userId: string, schemeId: string): Promis
  * STUB: build the `match-schemes` Edge Function before this will succeed —
  * see README_SETUP.md.
  */
-export async function runSchemeMatch(userId: string): Promise<void> {
-  const { error } = await supabase.functions.invoke('match-schemes', {
-    body: { user_id: userId },
-  });
+export async function runSchemeMatch(userId: string): Promise<number> {
+  const { data, error } = await supabase.functions.invoke<{ matched_count?: number }>(
+    'match-schemes',
+    { body: { user_id: userId } },
+  );
 
   if (error) throw error;
+  return data?.matched_count ?? 0;
 }
 
 

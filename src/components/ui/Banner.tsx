@@ -12,7 +12,7 @@ import { Button } from './Button';
 import { Icon, IconName } from './Icon';
 import { toneColors } from './tones';
 
-export type BannerTone = 'info' | 'warning' | 'success' | 'accent';
+export type BannerTone = 'info' | 'warning' | 'success' | 'accent' | 'danger';
 
 export interface BannerProps {
   tone?: BannerTone;
@@ -33,6 +33,7 @@ const defaultIcons: Record<BannerTone, IconName> = {
   warning: 'warning',
   success: 'checkmark-circle',
   accent: 'sparkles',
+  danger: 'alert-circle',
 };
 
 export function Banner({
