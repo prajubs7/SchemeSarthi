@@ -10,6 +10,7 @@ export const sizes = {
   iconCircle: { sm: 36, md: 44, lg: 52, xl: 72 },
   avatar: { sm: 32, md: 40, lg: 56 },
   categoryTile: 88,
+  tabBar: 64,
   dot: 8,
   countBadge: 18,
   progressBar: 8,

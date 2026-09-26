@@ -1,13 +1,12 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useSchemeMatches } from '../../hooks/useSchemeMatches';
 import SchemeListCard from '../../components/scheme/SchemeListCard';
 import { EmptyState, LoadingSpinner } from '../../components/ui';
-import { HomeStackParamList } from '../../navigation/types';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'AllMatchedSchemes'>;
+type Props = RootStackScreenProps<'AllMatchedSchemes'>;
 
 export default function MatchedSchemesScreen({ navigation }: Props) {
   const { user } = useAuth();

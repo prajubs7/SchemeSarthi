@@ -1,14 +1,13 @@
 import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getSchemeById, markSchemeViewed } from '../../services/schemesApi';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Card, LoadingSpinner } from '../../components/ui';
 import { colors } from '../../constants/colors';
-import { HomeStackParamList } from '../../navigation/types';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'SchemeDetail'>;
+type Props = RootStackScreenProps<'SchemeDetail'>;
 
 export default function SchemeDetailScreen({ route, navigation }: Props) {
   const { schemeId } = route.params;

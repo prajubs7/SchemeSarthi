@@ -8,14 +8,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { upsertProfile } from '../../services/profileApi';
 import { runSchemeMatch } from '../../services/schemesApi';
-import { setProfile } from '../../store/slices/profileSlice';
 import { Button } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { RootState } from '../../store';
+import { RootStackScreenProps } from '../../navigation/types';
+
+// Also mounted by OnboardingStack, whose ProfileSetup route has the same params.
+type Props = RootStackScreenProps<'ProfileSetup'>;
 
 // Fixed option sets — MUST match the exact strings your eligibility_rules JSON
 // and matching SQL function compare against. Extend these as you curate more
@@ -72,9 +76,10 @@ function ChipSelector({
   );
 }
 
-export default function ProfileSetupScreen({ navigation }: any) {
+export default function ProfileSetupScreen({ navigation, route }: Props) {
+  const isOnboarding = route.params?.mode === 'onboarding';
   const { user } = useAuth();
-  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const existingProfile = useSelector(
     (state: RootState) => state.profile.profile,
   );
@@ -120,13 +125,16 @@ export default function ProfileSetupScreen({ navigation }: any) {
         social_category: category,
         metadata: {},
       });
-      dispatch(setProfile(profile));
       await runSchemeMatch(user.id);
+      queryClient.invalidateQueries({ queryKey: ['schemeMatches', user.id] });
+      // RootNavigator gates on this query (and mirrors it into redux), so in
+      // onboarding mode this is what moves the user on to the app.
+      queryClient.setQueryData(['profile', user.id], profile);
       Alert.alert(
         'Success',
         'Your profile is saved and schemes have been matched.',
       );
-      navigation?.goBack?.();
+      if (!isOnboarding) navigation.goBack();
     } catch (err: any) {
       Alert.alert('Something went wrong', err.message);
     } finally {

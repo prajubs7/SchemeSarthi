@@ -3,6 +3,7 @@ export * from './AppText';
 export * from './Icon';
 export * from './IconCircle';
 export * from './Screen';
+export * from './ScreenHeader';
 export * from './Button';
 export * from './IconButton';
 export * from './TextField';
