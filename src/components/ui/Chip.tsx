@@ -84,6 +84,8 @@ interface ChipGroupBaseProps<T extends string> {
   disabled?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  /** Horizontal only: padding for the scrolling row, e.g. the screen gutter. */
+  contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 interface SingleChipGroupProps<T extends string> extends ChipGroupBaseProps<T> {
@@ -103,7 +105,14 @@ export type ChipGroupProps<T extends string> =
   | MultiChipGroupProps<T>;
 
 export function ChipGroup<T extends string>(props: ChipGroupProps<T>) {
-  const { options, horizontal, disabled, accessibilityLabel, style } = props;
+  const {
+    options,
+    horizontal,
+    disabled,
+    accessibilityLabel,
+    style,
+    contentContainerStyle,
+  } = props;
 
   const isSelected = (v: T) =>
     props.multiple ? props.value.includes(v) : props.value === v;
@@ -141,7 +150,8 @@ export function ChipGroup<T extends string>(props: ChipGroupProps<T>) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.row, contentContainerStyle]}
         style={style}
         {...groupA11y}
       >

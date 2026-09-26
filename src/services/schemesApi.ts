@@ -67,7 +67,18 @@ export async function runSchemeMatch(userId: string): Promise<number> {
 }
 
 
-// Add this to schemesApi.ts
+/**
+ * Turns user input into a quoted PostgREST `ilike` value matching it as a literal substring.
+ * LIKE wildcards (% _) and the escape char are backslash-escaped for Postgres; the whole value
+ * is double-quoted so `,` `(` `)` `.` `:` can't break the .or() filter, and `\` `"` are
+ * escaped again for PostgREST's quoted-value syntax. `*` is PostgREST's alias for `%`
+ * and can't be escaped, so it is dropped.
+ */
+function toIlikeContains(term: string): string {
+  const likeEscaped = term.replace(/\*/g, '').replace(/[\\%_]/g, c => `\\${c}`);
+  const quoted = `%${likeEscaped}%`.replace(/[\\"]/g, c => `\\${c}`);
+  return `"${quoted}"`;
+}
 
 export async function getAllSchemes(searchQuery?: string): Promise<Scheme[]> {
   let query = supabase
@@ -76,10 +87,11 @@ export async function getAllSchemes(searchQuery?: string): Promise<Scheme[]> {
     .eq('status', 'active')
     .order('title', { ascending: true });
 
-  // simple text search across title/description — fine for MVP;
-  // your pgvector similarity search is a separate, smarter feature for later
-  if (searchQuery && searchQuery.trim().length > 0) {
-    query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+  // Plain text search across title/description; pgvector similarity search is a separate feature.
+  const term = searchQuery?.trim();
+  if (term) {
+    const value = toIlikeContains(term);
+    query = query.or(`title.ilike.${value},description.ilike.${value}`);
   }
 
   const { data, error } = await query;

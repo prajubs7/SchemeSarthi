@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getMatchedSchemes } from '../services/schemesApi';
 import { getAllSchemes } from '../services/schemesApi';
 
@@ -11,8 +11,11 @@ export function useSchemeMatches(userId: string | undefined) {
 }
 
 export function useAllSchemes(searchQuery?: string) {
+  const term = searchQuery?.trim() ?? '';
   return useQuery({
-    queryKey: ['allSchemes', searchQuery],
-    queryFn: () => getAllSchemes(searchQuery),
+    queryKey: ['allSchemes', term],
+    queryFn: () => getAllSchemes(term),
+    // Keep showing the last results while a new search loads, instead of flashing skeletons.
+    placeholderData: keepPreviousData,
   });
 }

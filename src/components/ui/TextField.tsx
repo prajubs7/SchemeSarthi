@@ -26,6 +26,8 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   /** Replaces the helper text and turns the border red. */
   error?: string | null;
   leftIcon?: IconName;
+  /** Shows a clear button while the field has a value. */
+  onClear?: () => void;
   /** Container style. */
   style?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
@@ -38,6 +40,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
       helperText,
       error,
       leftIcon,
+      onClear,
       secureTextEntry,
       multiline,
       editable = true,
@@ -115,6 +118,16 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             accessibilityState={{ disabled: !editable }}
             {...rest}
           />
+          {onClear && rest.value ? (
+            <Pressable
+              onPress={onClear}
+              hitSlop={spacing.md}
+              accessibilityRole="button"
+              accessibilityLabel={`Clear ${label ?? accessibilityLabel ?? 'text'}`}
+            >
+              <Icon name="close-circle" color="textMuted" />
+            </Pressable>
+          ) : null}
           {secureTextEntry ? (
             <Pressable
               onPress={() => setHidden(h => !h)}

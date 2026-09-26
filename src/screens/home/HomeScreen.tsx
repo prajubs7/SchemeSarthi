@@ -29,6 +29,7 @@ import { colors, radius, sizes, spacing } from '../../theme';
 import { RootState } from '../../store';
 import { MainTabScreenProps } from '../../navigation/types';
 import { AgeGroup, getAgeGroup } from '../../constants/profileOptions';
+import { SCHEME_CATEGORIES } from '../../constants/schemeCategories';
 import { Profile } from '../../types/profile';
 import { MatchedScheme } from '../../types/scheme';
 import { AppNotification, NotificationType } from '../../types/notification';
@@ -39,17 +40,6 @@ type Props = MainTabScreenProps<'HomeTab'>;
 const TOP_MATCHES = 3;
 const WHATS_NEW_LIMIT = 3;
 const AGE_ROW_LIMIT = 8;
-
-// `filter` is passed to the Schemes tab as initialCategory.
-const CATEGORIES: { label: string; icon: IconName; filter: string }[] = [
-  { label: 'Students', icon: 'school-outline', filter: 'student' },
-  { label: 'Farmers', icon: 'leaf-outline', filter: 'farmer' },
-  { label: 'Women', icon: 'woman-outline', filter: 'woman' },
-  { label: 'Senior citizens', icon: 'people-outline', filter: 'senior' },
-  { label: 'Housing', icon: 'home-outline', filter: 'housing' },
-  { label: 'Business', icon: 'briefcase-outline', filter: 'business' },
-  { label: 'Health', icon: 'medkit-outline', filter: 'health' },
-];
 
 const NOTIFICATION_STYLE: Record<
   NotificationType,
@@ -358,14 +348,14 @@ export default function HomeScreen({ navigation }: Props) {
           style={styles.bleed}
           contentContainerStyle={styles.hRow}
         >
-          {CATEGORIES.map(cat => (
+          {SCHEME_CATEGORIES.map(cat => (
             <CategoryTile
-              key={cat.filter}
+              key={cat.key}
               icon={cat.icon}
               label={cat.label}
               onPress={() =>
                 navigation.navigate('SchemeTab', {
-                  initialCategory: cat.filter,
+                  initialCategory: cat.key,
                 })
               }
             />
