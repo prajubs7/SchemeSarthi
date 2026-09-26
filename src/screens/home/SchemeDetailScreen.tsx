@@ -1,16 +1,13 @@
 import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getSchemeById, markSchemeViewed } from '../../services/schemesApi';
 import { useAuth } from '../../hooks/useAuth';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { Button, Card, LoadingSpinner } from '../../components/ui';
 import { colors } from '../../constants/colors';
-import { HomeStackParamList } from '../../navigation/types';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'SchemeDetail'>;
+type Props = RootStackScreenProps<'SchemeDetail'>;
 
 export default function SchemeDetailScreen({ route, navigation }: Props) {
   const { schemeId } = route.params;
@@ -35,7 +32,7 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
       <Text style={styles.title}>{scheme.title}</Text>
 
       {scheme.status === 'needs_verification' && (
-        <Card style={styles.warningCard}>
+        <Card style={[styles.card, styles.warningCard]}>
           <Text style={styles.warningText}>
             ⚠️ Some details for this scheme may be out of date. Please verify on
             the official link before applying.
@@ -43,20 +40,20 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card style={styles.card}>
         <Text style={styles.sectionTitle}>What is this scheme?</Text>
         <Text style={styles.body}>{scheme.description}</Text>
       </Card>
 
       {scheme.benefit_summary && (
-        <Card>
+        <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Benefits</Text>
           <Text style={styles.body}>{scheme.benefit_summary}</Text>
         </Card>
       )}
 
       {scheme.required_documents && scheme.required_documents.length > 0 && (
-        <Card>
+        <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Documents you'll need</Text>
           {scheme.required_documents.map(doc => (
             <Text key={doc} style={styles.listItem}>
@@ -107,6 +104,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary, 
     marginBottom: 4 
   },
+  card: { marginBottom: 12 },
   warningCard: { 
     backgroundColor: '#FFF3E0', 
     borderColor: colors.warning 

@@ -1,20 +1,37 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, TextInput, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, TextInput } from 'react-native';
 import SchemeListCard from '../../components/scheme/SchemeListCard';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import EmptyState from '../../components/common/EmptyState';
+import {
+  EmptyState,
+  LoadingSpinner,
+  Screen,
+  ScreenHeader,
+} from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { Scheme } from '../../types/scheme';
 import { useAllSchemes } from '../../hooks/useSchemeMatches';
+import { MainTabScreenProps } from '../../navigation/types';
 
-export default function SchemesScreen() {
-  const [search, setSearch] = useState('');
-  const { data: schemes, isLoading, refetch, isRefetching } = useAllSchemes(search);
-  const navigation = useNavigation<any>();
+type Props = MainTabScreenProps<'SchemeTab'>;
+
+export default function SchemesScreen({ navigation, route }: Props) {
+  const initialCategory = route.params?.initialCategory;
+  const [search, setSearch] = useState(initialCategory ?? '');
+  const {
+    data: schemes,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useAllSchemes(search);
+
+  // Home's category tiles land here with a category. Until Step 7 adds filter chips, search by it.
+  useEffect(() => {
+    if (initialCategory) setSearch(initialCategory);
+  }, [initialCategory]);
 
   return (
-    <View style={styles.container}>
+    <Screen edges={['top', 'left', 'right']} padded={false}>
+      <ScreenHeader title="Explore schemes" />
       <TextInput
         style={styles.searchInput}
         placeholder="Search schemes (e.g. farmer, student, housing)"
@@ -28,7 +45,11 @@ export default function SchemesScreen() {
       ) : !schemes || schemes.length === 0 ? (
         <EmptyState
           title="No schemes found"
-          subtitle={search ? 'Try a different search term.' : 'Check back soon — more schemes are being added.'}
+          subtitle={
+            search
+              ? 'Try a different search term.'
+              : 'Check back soon — more schemes are being added.'
+          }
         />
       ) : (
         <FlatList
@@ -42,21 +63,17 @@ export default function SchemesScreen() {
               scheme={item}
               showMatchInfo={false}
               onPress={() =>
-                navigation.navigate('HomeTab', {
-                  screen: 'SchemeDetail',
-                  params: { schemeId: item.id },
-                })
+                navigation.navigate('SchemeDetail', { schemeId: item.id })
               }
             />
           )}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
   searchInput: {
     margin: 16,
     marginBottom: 8,

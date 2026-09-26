@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { askSchemeQuestion, setQaHelpful } from '../../services/qaApi';
-import Button from '../../components/common/Button';
+import { Button } from '../../components/ui';
 import { colors } from '../../constants/colors';
-import { HomeStackParamList } from '../../navigation/types';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'SchemeQA'>;
+type Props = RootStackScreenProps<'SchemeQA'>;
 
 interface QaTurn {
   question: string;

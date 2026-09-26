@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
-import Button from '../../components/common/Button';
+import { Button } from '../../components/ui';
 import { colors } from '../../constants/colors';
 import { AuthStackParamList } from '../../navigation/types';
 

@@ -1,18 +1,21 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
 import { useSchemeMatches } from '../../hooks/useSchemeMatches';
-import SchemeCard from '../../components/scheme/SchemeCard';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import EmptyState from '../../components/common/EmptyState';
-import { HomeStackParamList } from '../../navigation/types';
+import SchemeListCard from '../../components/scheme/SchemeListCard';
+import { EmptyState, LoadingSpinner } from '../../components/ui';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'AllMatchedSchemes'>;
+type Props = RootStackScreenProps<'AllMatchedSchemes'>;
 
 export default function MatchedSchemesScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { data: schemes, isLoading, refetch, isRefetching } = useSchemeMatches(user?.id);
+  const {
+    data: schemes,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useSchemeMatches(user?.id);
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -29,12 +32,18 @@ export default function MatchedSchemesScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         data={schemes}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         refreshing={isRefetching}
         onRefresh={refetch}
         renderItem={({ item }) => (
-          <SchemeCard scheme={item} onPress={() => navigation.navigate('SchemeDetail', { schemeId: item.id })} />
+          <SchemeListCard
+            scheme={item}
+            showMatchInfo
+            onPress={() =>
+              navigation.navigate('SchemeDetail', { schemeId: item.id })
+            }
+          />
         )}
       />
     </View>

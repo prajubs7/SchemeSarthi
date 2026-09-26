@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors } from '../../constants/colors';
+import { StyleSheet, View } from 'react-native';
+import { AppText, Card, Icon, StatusPill } from '../ui';
+import { colors, sizes, spacing } from '../../theme';
 import { Scheme, MatchedScheme } from '../../types/scheme';
 
 interface SchemeListCardProps {
@@ -16,89 +17,97 @@ export default function SchemeListCard({
 }: SchemeListCardProps) {
   const matched = scheme as MatchedScheme;
   const isNew = showMatchInfo && matched.viewed === false;
+  const isMatched = showMatchInfo && matched.match_score != null;
+  const needsVerification = scheme.status === 'needs_verification';
+  const isCentral = scheme.scheme_level === 'central';
+  const levelLabel = isCentral ? 'Central' : 'State';
+
+  const a11yLabel = [
+    scheme.title,
+    isNew && 'New',
+    `${levelLabel} scheme`,
+    isMatched && 'Matched for you',
+    needsVerification && 'Verify details',
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
-    <TouchableOpacity
+    <Card
       onPress={onPress}
-      activeOpacity={0.75}
-      style={styles.touchable}
+      padding="none"
+      accessibilityLabel={a11yLabel}
+      accessibilityHint="Opens scheme details"
+      style={styles.card}
     >
-      <View style={styles.card}>
-        {/* Left accent bar — instant visual cue for central vs state,
-            a pattern users already recognize from official govt portals */}
-        <View
-          style={[
-            styles.accentBar,
-            {
-              backgroundColor:
-                scheme.scheme_level === 'central'
-                  ? colors.primary
-                  : colors.accent,
-            },
-          ]}
-        />
+      {/* Left accent bar: instant visual cue for central vs state,
+          a pattern users already recognize from official govt portals */}
+      <View
+        style={[
+          styles.accentBar,
+          { backgroundColor: isCentral ? colors.primary : colors.accent },
+        ]}
+      />
 
-        <View style={styles.content}>
-          <View style={styles.topRow}>
-            <Text style={styles.title} numberOfLines={2}>
-              {scheme.title}
-            </Text>
-            {isNew && <View style={styles.newDot} />}
-          </View>
-
-          <Text style={styles.summary} numberOfLines={2}>
-            {scheme.benefit_summary ?? scheme.description}
-          </Text>
-
-          <View style={styles.badgeRow}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>
-                {scheme.scheme_level === 'central' ? '🇮🇳 Central' : '📍 State'}
-              </Text>
-            </View>
-
-            {showMatchInfo && matched.match_score != null && (
-              <View style={styles.matchBadge}>
-                <Text style={styles.matchBadgeText}>✓ Matched for you</Text>
-              </View>
-            )}
-
-            {scheme.status === 'needs_verification' && (
-              <View style={styles.warnBadge}>
-                <Text style={styles.warnBadgeText}>⚠ Verify details</Text>
-              </View>
-            )}
-          </View>
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <AppText variant="title" numberOfLines={2} style={styles.title}>
+            {scheme.title}
+          </AppText>
+          {isNew && <View style={styles.newDot} />}
         </View>
 
-        {/* Chevron affordance — signals tappability without relying on color alone,
-            important for accessibility with an older/less tech-familiar audience */}
-        <Text style={styles.chevron}>›</Text>
+        <AppText variant="bodySm" color="textSecondary" numberOfLines={2}>
+          {scheme.benefit_summary ?? scheme.description}
+        </AppText>
+
+        <View style={styles.badgeRow}>
+          <StatusPill
+            size="sm"
+            tone="neutral"
+            icon={isCentral ? 'business-outline' : 'location-outline'}
+            label={levelLabel}
+          />
+          {isMatched && (
+            <StatusPill
+              size="sm"
+              tone="success"
+              icon="checkmark-circle"
+              label="Matched for you"
+            />
+          )}
+          {needsVerification && (
+            <StatusPill
+              size="sm"
+              tone="warning"
+              icon="alert-circle"
+              label="Verify details"
+            />
+          )}
+        </View>
       </View>
-    </TouchableOpacity>
+
+      {/* Chevron affordance: signals tappability without relying on color alone,
+          important for accessibility with an older/less tech-familiar audience */}
+      <Icon name="chevron-forward" color="textMuted" style={styles.chevron} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  touchable: {
-    marginBottom: 12,
-  },
   card: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    minHeight: 88, // generous touch target
     alignItems: 'stretch',
+    overflow: 'hidden',
+    marginBottom: spacing.md,
   },
   accentBar: {
-    width: 5,
+    width: sizes.accentBar,
   },
   content: {
     flex: 1,
-    padding: 14,
+    padding: spacing.lg,
+    gap: spacing.xs,
     justifyContent: 'center',
   },
   topRow: {
@@ -106,70 +115,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
     flex: 1,
-    lineHeight: 21,
   },
   newDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    width: sizes.dot,
+    height: sizes.dot,
+    borderRadius: sizes.dot / 2,
     backgroundColor: colors.accent,
-    marginLeft: 8,
-    marginTop: 6,
-  },
-  summary: {
-    fontSize: 13.5,
-    color: colors.textSecondary,
-    marginTop: 5,
-    lineHeight: 19,
+    marginLeft: spacing.sm,
+    marginTop: spacing.sm,
   },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 6,
-  },
-  levelBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 7,
-    backgroundColor: '#F0F4F0',
-  },
-  levelBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  matchBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 7,
-    backgroundColor: '#E8F5E9',
-  },
-  matchBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: colors.success,
-  },
-  warnBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 7,
-    backgroundColor: '#FFF3E0',
-  },
-  warnBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: colors.warning,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   chevron: {
-    fontSize: 26,
-    color: colors.border,
     alignSelf: 'center',
-    marginRight: 12,
-    fontWeight: '300',
+    marginRight: spacing.md,
   },
 });

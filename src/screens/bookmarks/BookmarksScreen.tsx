@@ -1,53 +1,64 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { useBookmarks } from '../../hooks/useBookmarks';
-import Card from '../../components/common/Card';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import EmptyState from '../../components/common/EmptyState';
+import {
+  Card,
+  EmptyState,
+  LoadingSpinner,
+  Screen,
+  ScreenHeader,
+} from '../../components/ui';
 import { colors } from '../../constants/colors';
+import { MainTabScreenProps } from '../../navigation/types';
 
-export default function BookmarksScreen() {
+type Props = MainTabScreenProps<'SavedTab'>;
+
+export default function BookmarksScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { data: bookmarks, isLoading } = useBookmarks(user?.id);
-  const navigation = useNavigation<any>();
-
-  if (isLoading) return <LoadingSpinner />;
-
-  if (!bookmarks || bookmarks.length === 0) {
-    return <EmptyState title="No bookmarks yet" subtitle="Save schemes you want to revisit later." />;
-  }
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={{ padding: 16 }}
-      data={bookmarks}
-      keyExtractor={(item: any) => item.schemes.id}
-      renderItem={({ item }: any) => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('HomeTab', {
-              screen: 'SchemeDetail',
-              params: { schemeId: item.schemes.id },
-            })
-          }
-        >
-          <Card>
-            <Text style={styles.title}>{item.schemes.title}</Text>
-            <Text style={styles.summary} numberOfLines={2}>
-              {item.schemes.benefit_summary ?? item.schemes.description}
-            </Text>
-          </Card>
-        </TouchableOpacity>
+    <Screen edges={['top', 'left', 'right']} padded={false}>
+      <ScreenHeader title="Saved schemes" />
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : !bookmarks || bookmarks.length === 0 ? (
+        <EmptyState
+          icon="bookmark-outline"
+          title="No saved schemes yet"
+          subtitle="Save schemes you want to revisit later."
+        />
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.list}
+          data={bookmarks}
+          keyExtractor={(item: any) => item.schemes.id}
+          renderItem={({ item }: any) => (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('SchemeDetail', {
+                  schemeId: item.schemes.id,
+                })
+              }
+            >
+              <Card style={styles.card}>
+                <Text style={styles.title}>{item.schemes.title}</Text>
+                <Text style={styles.summary} numberOfLines={2}>
+                  {item.schemes.benefit_summary ?? item.schemes.description}
+                </Text>
+              </Card>
+            </TouchableOpacity>
+          )}
+        />
       )}
-    />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  list: { padding: 16 },
+  card: { marginBottom: 12 },
   title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   summary: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 });
