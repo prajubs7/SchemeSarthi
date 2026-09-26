@@ -10,6 +10,10 @@ export const sizes = {
   iconCircle: { sm: 36, md: 44, lg: 52, xl: 72 },
   avatar: { sm: 32, md: 40, lg: 56 },
   categoryTile: 88,
+  /** Fixed-width scheme card in horizontal rows. */
+  compactCard: 264,
+  /** Decorative circle that shades the hero card towards primaryDark. */
+  heroOrb: 220,
   tabBar: 64,
   dot: 8,
   countBadge: 18,

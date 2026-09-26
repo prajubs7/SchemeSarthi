@@ -3,21 +3,34 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Card, Icon, StatusPill } from '../ui';
 import { colors, sizes, spacing } from '../../theme';
 import { Scheme, MatchedScheme } from '../../types/scheme';
+import { schemeMinAge } from '../../constants/schemeCategories';
 
 interface SchemeListCardProps {
   scheme: Scheme | MatchedScheme;
   onPress: () => void;
   showMatchInfo?: boolean; // true on Home (matched list), false on Schemes (browse all)
+  /** Overrides the match badge when the scheme isn't a MatchedScheme (e.g. the catalogue). */
+  matched?: boolean;
+  /** When below the scheme's minimum age, shows "Eligible from age X". */
+  userAge?: number | null;
 }
 
 export default function SchemeListCard({
   scheme,
   onPress,
   showMatchInfo,
+  matched,
+  userAge,
 }: SchemeListCardProps) {
-  const matched = scheme as MatchedScheme;
-  const isNew = showMatchInfo && matched.viewed === false;
-  const isMatched = showMatchInfo && matched.match_score != null;
+  const matchInfo = scheme as MatchedScheme;
+  const isNew = showMatchInfo && matchInfo.viewed === false;
+  const isMatched =
+    matched ?? (showMatchInfo && matchInfo.match_score != null);
+  const minAge = schemeMinAge(scheme);
+  const eligibleFromAge =
+    !isMatched && userAge != null && minAge !== null && userAge < minAge
+      ? minAge
+      : null;
   const needsVerification = scheme.status === 'needs_verification';
   const isCentral = scheme.scheme_level === 'central';
   const levelLabel = isCentral ? 'Central' : 'State';
@@ -27,6 +40,7 @@ export default function SchemeListCard({
     isNew && 'New',
     `${levelLabel} scheme`,
     isMatched && 'Matched for you',
+    eligibleFromAge !== null && `Eligible from age ${eligibleFromAge}`,
     needsVerification && 'Verify details',
   ]
     .filter(Boolean)
@@ -74,6 +88,14 @@ export default function SchemeListCard({
               tone="success"
               icon="checkmark-circle"
               label="Matched for you"
+            />
+          )}
+          {eligibleFromAge !== null && (
+            <StatusPill
+              size="sm"
+              tone="info"
+              icon="time-outline"
+              label={`Eligible from age ${eligibleFromAge}`}
             />
           )}
           {needsVerification && (

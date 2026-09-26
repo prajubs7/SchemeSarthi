@@ -25,6 +25,8 @@ export interface Scheme {
   states: string[];
   status: 'active' | 'inactive' | 'expired' | 'needs_verification';
   last_verified_at: string | null;
+  /** Free-form extras, e.g. application_deadline or how_to_apply steps. */
+  metadata?: Record<string, any> | null;
   created_at: string;
 }
 
@@ -32,6 +34,13 @@ export interface MatchedScheme extends Scheme {
   match_score: number | null;
   match_reason: Record<string, { required: unknown; actual: unknown; pass: boolean; unverified?: boolean }> | null;
   viewed: boolean;
+}
+
+/** A bookmarks row joined with its scheme, as returned by getBookmarks. */
+export interface BookmarkWithScheme {
+  created_at: string;
+  notes: string | null;
+  schemes: Scheme;
 }
 
 export interface Bookmark {

@@ -1,7 +1,10 @@
-// src/utils/eligibility.ts has a client copy of checkEligibility; keep the two in sync.
+// Client copy of checkEligibility from supabase/functions/_shared/eligibility.ts.
+// KEEP IN SYNC: the logic below must match the edge function exactly, so the scheme detail
+// screen explains eligibility for unmatched schemes the same way the matcher would.
+// Only the type names differ (the app has its own Profile and Scheme types).
+
 export type JsonObject = Record<string, any>;
-export type Profile = {
-  id: string;
+export type EligibilityProfile = {
   age: number | null;
   occupation_category: string | null;
   income_bracket: string | null;
@@ -9,14 +12,8 @@ export type Profile = {
   gender: string | null;
   social_category: string | null;
 };
-export type Scheme = {
-  id: string;
-  title: string;
-  description: string;
-  benefit_summary: string | null;
+export type EligibilityScheme = {
   eligibility_rules: JsonObject | null;
-  states: string[] | null;
-  created_at?: string;
 };
 export type CheckResult = {
   required: unknown;
@@ -77,7 +74,7 @@ function incomeWithinNumericMax(actual: unknown, required: unknown): boolean {
   return actualUpper !== null && requiredMax !== null && actualUpper <= requiredMax;
 }
 
-export function checkEligibility(profile: Profile, scheme: Scheme): { passed: boolean; reason: JsonObject } {
+export function checkEligibility(profile: EligibilityProfile, scheme: EligibilityScheme): { passed: boolean; reason: JsonObject } {
   const rules = scheme.eligibility_rules && typeof scheme.eligibility_rules === 'object'
     ? scheme.eligibility_rules
     : {};
