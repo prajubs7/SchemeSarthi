@@ -55,3 +55,53 @@ export function formatMatchReasons(matchReason: MatchedScheme['match_reason']): 
       actualText: toText(check.actual, 'Not provided'),
     }));
 }
+
+export type EligibilityVerdict = 'eligible' | 'not_eligible' | 'partly_verified';
+
+/** Any failed criterion means not eligible; otherwise any unverified one means partly verified. */
+export function eligibilityVerdict(checks: EligibilityCheck[]): EligibilityVerdict {
+  if (checks.some(c => c.status === 'fail')) return 'not_eligible';
+  if (checks.some(c => c.status === 'unverified')) return 'partly_verified';
+  return 'eligible';
+}
+
+function numberOrUndefined(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Plain-language explanation of what is missing for one failed criterion,
+ * e.g. "You'll be eligible at 18." `rules` is the scheme's eligibility_rules.
+ */
+export function explainFailedCheck(
+  check: EligibilityCheck,
+  rules: Record<string, any> | null | undefined,
+): string {
+  if (check.actualText === 'Not provided') {
+    return `Add your ${check.label.toLowerCase()} to your profile so we can check this.`;
+  }
+  switch (check.key) {
+    case 'age': {
+      const min = numberOrUndefined(rules?.age_min ?? rules?.min_age);
+      const max = numberOrUndefined(rules?.age_max ?? rules?.max_age);
+      const age = Number(check.actualText);
+      if (min !== undefined && age < min) return `You'll be eligible at ${min}.`;
+      if (max !== undefined && age > max) return `This scheme is for people aged up to ${max}.`;
+      return `This scheme is for people aged ${check.requiredText}.`;
+    }
+    case 'income_bracket':
+      return `This scheme is for households earning up to ${check.requiredText}. Your income is ${check.actualText}.`;
+    case 'states':
+      return `This scheme is only for residents of ${check.requiredText}.`;
+    case 'gender':
+      return `This scheme is only for: ${check.requiredText}.`;
+    case 'social_category':
+      return `This scheme is for these categories: ${check.requiredText}.`;
+    case 'occupation_category':
+      return `This scheme is for: ${check.requiredText}. Your occupation is ${check.actualText}.`;
+    default:
+      return `${check.label} must be ${check.requiredText}. Yours is ${check.actualText}.`;
+  }
+}

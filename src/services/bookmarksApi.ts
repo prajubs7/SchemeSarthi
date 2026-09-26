@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
+import { BookmarkWithScheme } from '../types/scheme';
 
-export async function getBookmarks(userId: string) {
+export async function getBookmarks(userId: string): Promise<BookmarkWithScheme[]> {
   const { data, error } = await supabase
     .from('bookmarks')
     .select(`created_at, notes, schemes (*)`)
@@ -8,7 +9,7 @@ export async function getBookmarks(userId: string) {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as unknown as BookmarkWithScheme[];
 }
 
 export async function addBookmark(userId: string, schemeId: string) {
