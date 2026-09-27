@@ -1,5 +1,7 @@
 import React, { ReactNode } from 'react';
 import {
+  AccessibilityActionEvent,
+  AccessibilityActionInfo,
   GestureResponderEvent,
   Pressable,
   StyleProp,
@@ -33,6 +35,9 @@ export interface CardProps {
   onPress?: (event: GestureResponderEvent) => void;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** Extra screen-reader actions, for buttons nested inside a pressable card. */
+  accessibilityActions?: AccessibilityActionInfo[];
+  onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
@@ -45,6 +50,8 @@ export function Card({
   onPress,
   accessibilityLabel,
   accessibilityHint,
+  accessibilityActions,
+  onAccessibilityAction,
   style,
   testID,
 }: CardProps) {
@@ -62,6 +69,8 @@ export function Card({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
+        accessibilityActions={accessibilityActions}
+        onAccessibilityAction={onAccessibilityAction}
         testID={testID}
         style={({ pressed }) => [cardStyle, pressed && styles.pressed, style]}
       >

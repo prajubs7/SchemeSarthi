@@ -11,7 +11,13 @@ export type AuthStackParamList = {
   OtpVerify: { email: string };
 };
 
-export type ProfileSetupParams = { mode?: 'onboarding' | 'edit' } | undefined;
+export type ProfileSetupParams =
+  | {
+      mode?: 'onboarding' | 'edit';
+      /** Wizard step to open at (0-based), e.g. when editing one field from Profile. */
+      step?: number;
+    }
+  | undefined;
 
 // Shown by the onboarding gate when the signed-in user has no usable profile yet.
 export type OnboardingStackParamList = {

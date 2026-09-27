@@ -13,6 +13,7 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
       match_score,
       match_reason,
       viewed,
+      matched_at,
       schemes (*)
     `
     )
@@ -26,6 +27,7 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
     match_score: row.match_score,
     match_reason: row.match_reason,
     viewed: row.viewed,
+    matched_at: row.matched_at ?? null,
   }));
 }
 

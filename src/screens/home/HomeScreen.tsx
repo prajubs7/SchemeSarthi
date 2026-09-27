@@ -28,7 +28,10 @@ import { RootState } from '../../store';
 import { MainTabScreenProps } from '../../navigation/types';
 import { AgeGroup, getAgeGroup } from '../../constants/profileOptions';
 import { SCHEME_CATEGORIES } from '../../constants/schemeCategories';
-import { Profile } from '../../types/profile';
+import {
+  missingProfileFields,
+  profileCompleteness,
+} from '../../utils/profileCompleteness';
 import { MatchedScheme } from '../../types/scheme';
 import { refreshDigestIfDue } from '../../services/notificationsApi';
 
@@ -37,23 +40,6 @@ type Props = MainTabScreenProps<'HomeTab'>;
 const TOP_MATCHES = 3;
 const WHATS_NEW_LIMIT = 3;
 const AGE_ROW_LIMIT = 8;
-
-// The six fields the matcher uses; completeness is the share that are filled in.
-const PROFILE_FIELDS: { key: keyof Profile; label: string }[] = [
-  { key: 'age', label: 'age' },
-  { key: 'gender', label: 'gender' },
-  { key: 'occupation_category', label: 'occupation' },
-  { key: 'income_bracket', label: 'income' },
-  { key: 'state', label: 'state' },
-  { key: 'social_category', label: 'category' },
-];
-
-function missingProfileFields(profile: Profile | null) {
-  return PROFILE_FIELDS.filter(f => {
-    const value = profile?.[f.key];
-    return value === null || value === undefined || value === '';
-  });
-}
 
 function ageRangeLabel(group: AgeGroup) {
   if (group.key === 'child') return 'under 18';
@@ -83,8 +69,7 @@ export default function HomeScreen({ navigation }: Props) {
   const schemes = useMemo(() => matches.data ?? [], [matches.data]);
   const ageGroup = getAgeGroup(profile?.age);
   const missing = missingProfileFields(profile);
-  const completeness =
-    (PROFILE_FIELDS.length - missing.length) / PROFILE_FIELDS.length;
+  const completeness = profileCompleteness(profile);
   const newCount = schemes.filter(s => !s.viewed).length;
   const whatsNew = notifications.unread.slice(0, WHATS_NEW_LIMIT);
 

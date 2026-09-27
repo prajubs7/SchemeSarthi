@@ -154,7 +154,9 @@ export default function ProfileSetupScreen({ navigation, route }: Props) {
   );
 
   const [form, setForm] = useState<Form>(() => initialForm(existingProfile));
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() =>
+    Math.min(LAST_STEP, Math.max(0, route.params?.step ?? 0)),
+  );
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [retrying, setRetrying] = useState(false);
