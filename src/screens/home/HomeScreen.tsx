@@ -13,8 +13,6 @@ import {
   CategoryTile,
   ErrorState,
   IconButton,
-  IconCircle,
-  IconName,
   ProgressBar,
   SchemeCardSkeleton,
   Screen,
@@ -22,9 +20,9 @@ import {
   Skeleton,
   StatCard,
   StatusPill,
-  Tone,
 } from '../../components/ui';
 import SchemeListCard from '../../components/scheme/SchemeListCard';
+import NotificationRow from '../../components/notifications/NotificationRow';
 import { colors, radius, sizes, spacing } from '../../theme';
 import { RootState } from '../../store';
 import { MainTabScreenProps } from '../../navigation/types';
@@ -32,24 +30,13 @@ import { AgeGroup, getAgeGroup } from '../../constants/profileOptions';
 import { SCHEME_CATEGORIES } from '../../constants/schemeCategories';
 import { Profile } from '../../types/profile';
 import { MatchedScheme } from '../../types/scheme';
-import { AppNotification, NotificationType } from '../../types/notification';
-import { formatRelativeTime } from '../../utils/relativeTime';
+import { refreshDigestIfDue } from '../../services/notificationsApi';
 
 type Props = MainTabScreenProps<'HomeTab'>;
 
 const TOP_MATCHES = 3;
 const WHATS_NEW_LIMIT = 3;
 const AGE_ROW_LIMIT = 8;
-
-const NOTIFICATION_STYLE: Record<
-  NotificationType,
-  { icon: IconName; tone: Tone }
-> = {
-  new_match: { icon: 'sparkles', tone: 'success' },
-  deadline_soon: { icon: 'time-outline', tone: 'warning' },
-  newly_launched: { icon: 'rocket-outline', tone: 'accent' },
-  scheme_updated: { icon: 'refresh', tone: 'info' },
-};
 
 // The six fields the matcher uses; completeness is the share that are filled in.
 const PROFILE_FIELDS: { key: keyof Profile; label: string }[] = [
@@ -113,8 +100,18 @@ export default function HomeScreen({ navigation }: Props) {
   const { refetch: refetchMatches } = matches;
   const { refetch: refetchNotifications } = notifications;
   const { refetch: refetchBookmarks } = bookmarks;
+  const userId = user?.id;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    // The digest re-runs matching, so refetch both once it lands. It runs in the background
+    // (at most every 6 hours) so the spinner only waits for the cached data.
+    if (userId) {
+      refreshDigestIfDue(userId)
+        .then(ran => {
+          if (ran) return Promise.all([refetchMatches(), refetchNotifications()]);
+        })
+        .catch(() => {});
+    }
     try {
       await Promise.all([
         refetchMatches(),
@@ -124,7 +121,7 @@ export default function HomeScreen({ navigation }: Props) {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchMatches, refetchNotifications, refetchBookmarks]);
+  }, [userId, refetchMatches, refetchNotifications, refetchBookmarks]);
 
   const openScheme = (schemeId: string) =>
     navigation.navigate('SchemeDetail', { schemeId });
@@ -278,11 +275,11 @@ export default function HomeScreen({ navigation }: Props) {
                 key={n.id}
                 notification={n}
                 divider={i > 0}
-                onPress={
-                  n.scheme_id
-                    ? () => openScheme(n.scheme_id as string)
-                    : () => navigation.navigate('Notifications')
-                }
+                onPress={() => {
+                  notifications.markRead(n.id);
+                  if (n.scheme_id) openScheme(n.scheme_id);
+                  else navigation.navigate('Notifications');
+                }}
               />
             ))}
           </Card>
@@ -388,42 +385,6 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-function NotificationRow({
-  notification,
-  divider,
-  onPress,
-}: {
-  notification: AppNotification;
-  divider: boolean;
-  onPress: () => void;
-}) {
-  const style =
-    NOTIFICATION_STYLE[notification.notification_type] ??
-    NOTIFICATION_STYLE.scheme_updated;
-  const when = formatRelativeTime(notification.created_at);
-  return (
-    <Card
-      variant="outlined"
-      padding="md"
-      onPress={onPress}
-      accessibilityLabel={`${notification.change_summary}, ${when}`}
-      accessibilityHint="Opens the scheme"
-      style={[styles.notifRow, divider && styles.notifDivider]}
-    >
-      <IconCircle icon={style.icon} tone={style.tone} size="sm" />
-      <View style={styles.notifText}>
-        <AppText variant="bodySm" numberOfLines={2}>
-          {notification.change_summary}
-        </AppText>
-        <AppText variant="caption" color="textMuted">
-          {when}
-        </AppText>
-      </View>
-      <View style={styles.unreadDot} />
-    </Card>
-  );
-}
-
 function CompactSchemeCard({
   scheme,
   onPress,
@@ -525,24 +486,6 @@ const styles = StyleSheet.create({
   heroMuted: { opacity: 0.85 },
   heroButton: { marginTop: spacing.md },
   progress: { marginTop: spacing.md },
-  notifRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 0,
-    borderRadius: 0,
-  },
-  notifDivider: {
-    borderTopWidth: sizes.borderWidth,
-    borderTopColor: colors.border,
-  },
-  notifText: { flex: 1, gap: spacing.xs / 2 },
-  unreadDot: {
-    width: sizes.dot,
-    height: sizes.dot,
-    borderRadius: sizes.dot / 2,
-    backgroundColor: colors.accent,
-  },
   statRow: { flexDirection: 'row', gap: spacing.md },
   // Horizontal rows run edge to edge while their first item lines up with the gutter.
   bleed: { marginHorizontal: -spacing.gutter },

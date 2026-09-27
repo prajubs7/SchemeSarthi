@@ -10,6 +10,11 @@ import HomeScreen from '../screens/home/HomeScreen';
 import SchemesScreen from '../screens/schemes/SchemesScreen';
 import BookmarksScreen from '../screens/bookmarks/BookmarksScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import { useAuth } from '../hooks/useAuth';
+import {
+  useNotifications,
+  useNotificationsRealtime,
+} from '../hooks/useNotifications';
 import { MainTabParamList } from './types';
 import { colors, sizes, spacing, typography } from '../theme';
 
@@ -24,8 +29,10 @@ const tabIcon =
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
 
-  // TODO(Step 10): replace with unreadCount from useNotifications().
-  const unreadCount = 0;
+  const { user } = useAuth();
+  const { unreadCount } = useNotifications(user?.id);
+  // The tabs stay mounted for the whole signed-in session, so the one Realtime subscription lives here.
+  useNotificationsRealtime(user?.id);
 
   return (
     <Tab.Navigator

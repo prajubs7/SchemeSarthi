@@ -4,7 +4,11 @@ import { useSelector } from 'react-redux';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { upsertProfile } from '../../services/profileApi';
-import { runSchemeMatch } from '../../services/schemesApi';
+import {
+  countMatchedSchemes,
+  runSchemeMatch,
+} from '../../services/schemesApi';
+import { refreshDigest } from '../../services/notificationsApi';
 import {
   AppText,
   Banner,
@@ -185,9 +189,19 @@ export default function ProfileSetupScreen({ navigation, route }: Props) {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
+  // The awareness digest re-runs match-schemes itself and diffs user_matches before/after,
+  // so it must run instead of (not after) runSchemeMatch or new_match notifications are lost.
+  // runSchemeMatch is the fallback when the digest fails.
   const matchSchemes = async (userId: string): Promise<number | null> => {
     try {
-      const count = await runSchemeMatch(userId);
+      let count: number;
+      try {
+        await refreshDigest(userId);
+        count = await countMatchedSchemes(userId);
+        queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+      } catch {
+        count = await runSchemeMatch(userId);
+      }
       queryClient.invalidateQueries({ queryKey: ['schemeMatches', userId] });
       return count;
     } catch {

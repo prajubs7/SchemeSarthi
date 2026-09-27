@@ -29,6 +29,16 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
   }));
 }
 
+export async function countMatchedSchemes(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('user_matches')
+    .select('scheme_id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getSchemeById(schemeId: string): Promise<Scheme> {
   const { data, error } = await supabase
     .from('schemes')
