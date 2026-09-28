@@ -33,9 +33,22 @@ function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : value === null || value === undefined ? [] : [value];
 }
 
+// Rule data and profile values spell the same thing differently ("business_owner" vs
+// "business owner", "female" vs "woman"), so categorical values are compared in this form.
+const SYNONYMS: Record<string, string> = { female: 'woman', male: 'man' };
+function canonical(value: unknown): string {
+  const text = normalize(value).replace(/[s_-]+/g, ' ');
+  return SYNONYMS[text] ?? text;
+}
+
+/** An explicit "ALL" in a rule list means the criterion does not restrict anyone. */
+function isWildcard(allowed: unknown): boolean {
+  return asList(allowed).some(value => canonical(value) === 'all');
+}
+
 function matchesAllowed(actual: unknown, allowed: unknown): boolean {
   if (actual === null || actual === undefined || String(actual).trim() === '') return false;
-  return asList(allowed).some(value => normalize(value) === normalize(actual));
+  return asList(allowed).some(value => canonical(value) === canonical(actual));
 }
 
 function rangeLabel(min: unknown, max: unknown): string {
@@ -55,7 +68,7 @@ function amountInRupees(value: unknown): number | null {
   return amount * (unit.startsWith('cr') ? 10_000_000 : unit.startsWith('l') ? 100_000 : 1);
 }
 
-function bracketUpper(value: unknown): number | null {
+export function bracketUpper(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const text = String(value).replace(/₹|,/g, '').trim();
   const bounds = text.split(/\s*(?:-|–|to)\s*/i);
@@ -123,9 +136,32 @@ export function checkEligibility(profile: EligibilityProfile, scheme: Eligibilit
       continue;
     }
     const allowed = rules[key];
-    const ok = matchesAllowed(field.actual, allowed);
+    const ok = isWildcard(allowed) || matchesAllowed(field.actual, allowed);
     reason[field.output] = { required: allowed, actual: field.actual, pass: ok } satisfies CheckResult;
     passed &&= ok;
+  }
+
+  // Conditions the profile cannot confirm are failures, not passes: a scheme is only
+  // matched when every stated condition is known to hold for this person.
+  const special = asList(rules.special_eligibility).filter(value => String(value ?? '').trim() !== '');
+  if (special.length > 0) {
+    const autoAge = Number(rules.auto_eligible_min_age);
+    const age = profile.age === null ? NaN : Number(profile.age);
+    const byAge = has(rules, 'auto_eligible_min_age') && Number.isFinite(autoAge) && Number.isFinite(age) && age >= autoAge;
+    const byCategory = ['sc', 'st'].includes(canonical(profile.social_category))
+      && special.some(value => /sc[s_]*st/i.test(String(value)));
+    const ok = byAge || byCategory;
+    reason.special_eligibility = {
+      required: special, actual: null, pass: ok, ...(ok ? {} : { unverified: true }),
+    } satisfies CheckResult;
+    passed &&= ok;
+  }
+  if (has(rules, 'beneficiary_type')) {
+    // The benefit goes to someone else (e.g. a girl child), whom the profile does not describe.
+    reason.beneficiary = {
+      required: rules.beneficiary_type, actual: null, pass: false, unverified: true,
+    } satisfies CheckResult;
+    passed = false;
   }
   return { passed, reason };
 }

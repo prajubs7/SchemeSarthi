@@ -36,9 +36,22 @@ function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : value === null || value === undefined ? [] : [value];
 }
 
+// Rule data and profile values spell the same thing differently ("business_owner" vs
+// "business owner", "female" vs "woman"), so categorical values are compared in this form.
+const SYNONYMS: Record<string, string> = { female: 'woman', male: 'man' };
+function canonical(value: unknown): string {
+  const text = normalize(value).replace(/[s_-]+/g, ' ');
+  return SYNONYMS[text] ?? text;
+}
+
+/** An explicit "ALL" in a rule list means the criterion does not restrict anyone. */
+function isWildcard(allowed: unknown): boolean {
+  return asList(allowed).some(value => canonical(value) === 'all');
+}
+
 function matchesAllowed(actual: unknown, allowed: unknown): boolean {
   if (actual === null || actual === undefined || String(actual).trim() === '') return false;
-  return asList(allowed).some(value => normalize(value) === normalize(actual));
+  return asList(allowed).some(value => canonical(value) === canonical(actual));
 }
 
 function rangeLabel(min: unknown, max: unknown): string {
@@ -126,9 +139,69 @@ export function checkEligibility(profile: Profile, scheme: Scheme): { passed: bo
       continue;
     }
     const allowed = rules[key];
-    const ok = matchesAllowed(field.actual, allowed);
+    const ok = isWildcard(allowed) || matchesAllowed(field.actual, allowed);
     reason[field.output] = { required: allowed, actual: field.actual, pass: ok } satisfies CheckResult;
     passed &&= ok;
   }
+
+  // Conditions the profile cannot confirm are failures, not passes: a scheme is only
+  // matched when every stated condition is known to hold for this person.
+  const special = asList(rules.special_eligibility).filter(value => String(value ?? '').trim() !== '');
+  if (special.length > 0) {
+    const autoAge = Number(rules.auto_eligible_min_age);
+    const age = profile.age === null ? NaN : Number(profile.age);
+    const byAge = has(rules, 'auto_eligible_min_age') && Number.isFinite(autoAge) && Number.isFinite(age) && age >= autoAge;
+    const byCategory = ['sc', 'st'].includes(canonical(profile.social_category))
+      && special.some(value => /sc[s_]*st/i.test(String(value)));
+    const ok = byAge || byCategory;
+    reason.special_eligibility = {
+      required: special, actual: null, pass: ok, ...(ok ? {} : { unverified: true }),
+    } satisfies CheckResult;
+    passed &&= ok;
+  }
+  if (has(rules, 'beneficiary_type')) {
+    // The benefit goes to someone else (e.g. a girl child), whom the profile does not describe.
+    reason.beneficiary = {
+      required: rules.beneficiary_type, actual: null, pass: false, unverified: true,
+    } satisfies CheckResult;
+    passed = false;
+  }
   return { passed, reason };
+}
+
+// Near misses are limited to criteria a person can grow into or change. Gender, social
+// category and state are left out: "almost eligible" would not be meaningful for them.
+const NEAR_MISS_KEYS = new Set(['age', 'income_bracket', 'occupation_category']);
+export const AGE_WINDOW_YEARS = 2;
+
+export type NearMiss = {
+  failing_key: string;
+  /** Set for age near misses: the minimum age at which the user qualifies. */
+  qualifies_at_age: number | null;
+};
+
+export function ruleMinAge(rules: JsonObject | null): number | null {
+  const value = rules?.age_min ?? rules?.min_age;
+  if (value === null || value === undefined) return null;
+  const min = Number(value);
+  return Number.isFinite(min) ? min : null;
+}
+
+/**
+ * A scheme that fails exactly one checkEligibility criterion. A failure caused by a
+ * missing profile value is not a near miss, and neither is an age near miss unless
+ * the user is below the minimum age and reaches it within AGE_WINDOW_YEARS.
+ */
+export function findNearMiss(profile: Profile, scheme: Scheme, reason: JsonObject): NearMiss | null {
+  const failing = Object.entries(reason).filter(([, check]) => !(check as CheckResult).pass);
+  if (failing.length !== 1) return null;
+  const [key, check] = failing[0] as [string, CheckResult];
+  if (!NEAR_MISS_KEYS.has(key)) return null;
+  if (check.actual === null || check.actual === undefined || String(check.actual).trim() === '') return null;
+  if (key !== 'age') return { failing_key: key, qualifies_at_age: null };
+
+  const min = ruleMinAge(scheme.eligibility_rules);
+  const age = Number(profile.age);
+  if (min === null || !Number.isFinite(age) || age >= min || min - age > AGE_WINDOW_YEARS) return null;
+  return { failing_key: 'age', qualifies_at_age: Math.ceil(min) };
 }
