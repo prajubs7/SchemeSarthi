@@ -38,6 +38,15 @@ export interface MatchedScheme extends Scheme {
   matched_at?: string | null;
 }
 
+/** A scheme the user fails by exactly one criterion; see user_near_matches. */
+export interface NearMatchedScheme extends Scheme {
+  failing_key: 'age' | 'income_bracket' | 'occupation_category';
+  /** For age near misses, the age at which the user qualifies. */
+  qualifies_at_age: number | null;
+  match_score: number | null;
+  match_reason: MatchedScheme['match_reason'];
+}
+
 /** A bookmarks row joined with its scheme, as returned by getBookmarks. */
 export interface BookmarkWithScheme {
   created_at: string;

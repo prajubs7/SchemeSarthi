@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { MatchedScheme, Scheme } from '../types/scheme';
+import { MatchedScheme, NearMatchedScheme, Scheme } from '../types/scheme';
 
 /**
  * Fetches cached match results for a user (populated by the `match-schemes`
@@ -28,6 +28,25 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
     match_reason: row.match_reason,
     viewed: row.viewed,
     matched_at: row.matched_at ?? null,
+  }));
+}
+
+/** Schemes the user fails by exactly one criterion, as cached by `match-schemes`. */
+export async function getNearMatchedSchemes(userId: string): Promise<NearMatchedScheme[]> {
+  const { data, error } = await supabase
+    .from('user_near_matches')
+    .select('failing_key, qualifies_at_age, match_score, match_reason, schemes (*)')
+    .eq('user_id', userId)
+    .order('match_score', { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    ...row.schemes,
+    failing_key: row.failing_key,
+    qualifies_at_age: row.qualifies_at_age,
+    match_score: row.match_score,
+    match_reason: row.match_reason,
   }));
 }
 

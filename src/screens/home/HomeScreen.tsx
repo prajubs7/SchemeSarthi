@@ -2,7 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
-import { useSchemeMatches } from '../../hooks/useSchemeMatches';
+import {
+  useNearMatches,
+  useSchemeMatches,
+} from '../../hooks/useSchemeMatches';
 import { useBookmarks } from '../../hooks/useBookmarks';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
@@ -34,12 +37,14 @@ import {
 } from '../../utils/profileCompleteness';
 import { MatchedScheme } from '../../types/scheme';
 import { refreshDigestIfDue } from '../../services/notificationsApi';
+import { nearMatchNeeds } from '../../utils/eligibilityFormatter';
 
 type Props = MainTabScreenProps<'HomeTab'>;
 
 const TOP_MATCHES = 3;
 const WHATS_NEW_LIMIT = 3;
 const AGE_ROW_LIMIT = 8;
+const NEAR_MATCHES_PREVIEW = 3;
 
 function ageRangeLabel(group: AgeGroup) {
   if (group.key === 'child') return 'under 18';
@@ -64,13 +69,24 @@ export default function HomeScreen({ navigation }: Props) {
   const matches = useSchemeMatches(user?.id);
   const bookmarks = useBookmarks(user?.id);
   const notifications = useNotifications(user?.id);
+  const nearMatches = useNearMatches(user?.id);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAllAlmost, setShowAllAlmost] = useState(false);
 
   const schemes = useMemo(() => matches.data ?? [], [matches.data]);
   const ageGroup = getAgeGroup(profile?.age);
   const missing = missingProfileFields(profile);
   const completeness = profileCompleteness(profile);
   const newCount = schemes.filter(s => !s.viewed).length;
+  const { comingUp, almostEligible } = useMemo(() => {
+    const near = nearMatches.data ?? [];
+    return {
+      comingUp: near
+        .filter(s => s.qualifies_at_age != null)
+        .sort((a, b) => a.qualifies_at_age! - b.qualifies_at_age!),
+      almostEligible: near.filter(s => s.qualifies_at_age == null),
+    };
+  }, [nearMatches.data]);
   const whatsNew = notifications.unread.slice(0, WHATS_NEW_LIMIT);
 
   const ageSchemes = useMemo(() => {
@@ -85,6 +101,7 @@ export default function HomeScreen({ navigation }: Props) {
   const { refetch: refetchMatches } = matches;
   const { refetch: refetchNotifications } = notifications;
   const { refetch: refetchBookmarks } = bookmarks;
+  const { refetch: refetchNearMatches } = nearMatches;
   const userId = user?.id;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -93,20 +110,33 @@ export default function HomeScreen({ navigation }: Props) {
     if (userId) {
       refreshDigestIfDue(userId)
         .then(ran => {
-          if (ran) return Promise.all([refetchMatches(), refetchNotifications()]);
+          if (ran) {
+            return Promise.all([
+              refetchMatches(),
+              refetchNearMatches(),
+              refetchNotifications(),
+            ]);
+          }
         })
         .catch(() => {});
     }
     try {
       await Promise.all([
         refetchMatches(),
+        refetchNearMatches(),
         refetchNotifications(),
         refetchBookmarks(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [userId, refetchMatches, refetchNotifications, refetchBookmarks]);
+  }, [
+    userId,
+    refetchMatches,
+    refetchNearMatches,
+    refetchNotifications,
+    refetchBookmarks,
+  ]);
 
   const openScheme = (schemeId: string) =>
     navigation.navigate('SchemeDetail', { schemeId });
@@ -362,6 +392,51 @@ export default function HomeScreen({ navigation }: Props) {
               variant="outline"
               rightIcon="chevron-forward"
               onPress={openAllMatches}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
+      {comingUp.length > 0 ? (
+        <View style={styles.section}>
+          <SectionHeader
+            title="Coming up for you"
+            subtitle="Schemes you will qualify for as you get older"
+          />
+          {comingUp.map(s => (
+            <SchemeListCard
+              key={s.id}
+              scheme={s}
+              eligibleAtAge={s.qualifies_at_age}
+              onPress={() => openScheme(s.id)}
+            />
+          ))}
+        </View>
+      ) : null}
+
+      {almostEligible.length > 0 ? (
+        <View style={styles.section}>
+          <SectionHeader
+            title="Almost eligible"
+            subtitle="You meet every rule except one"
+          />
+          {(showAllAlmost
+            ? almostEligible
+            : almostEligible.slice(0, NEAR_MATCHES_PREVIEW)
+          ).map(s => (
+            <SchemeListCard
+              key={s.id}
+              scheme={s}
+              needs={nearMatchNeeds(s)}
+              onPress={() => openScheme(s.id)}
+            />
+          ))}
+          {!showAllAlmost && almostEligible.length > NEAR_MATCHES_PREVIEW ? (
+            <Button
+              title={`Show ${almostEligible.length - NEAR_MATCHES_PREVIEW} more`}
+              variant="outline"
+              rightIcon="chevron-down"
+              onPress={() => setShowAllAlmost(true)}
             />
           ) : null}
         </View>

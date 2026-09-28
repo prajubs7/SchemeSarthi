@@ -1,4 +1,6 @@
-import { MatchedScheme } from '../types/scheme';
+import { MatchedScheme, NearMatchedScheme } from '../types/scheme';
+import { OCCUPATION_OPTIONS } from '../constants/profileOptions';
+import { bracketUpper } from './eligibility';
 
 type MatchReason = NonNullable<MatchedScheme['match_reason']>;
 type Check = MatchReason[string];
@@ -22,6 +24,8 @@ const LABELS: Record<string, string> = {
   occupation_category: 'Occupation',
   social_category: 'Category',
   gender: 'Gender',
+  special_eligibility: 'Special condition',
+  beneficiary: 'Beneficiary',
 };
 const ORDER = Object.keys(LABELS);
 
@@ -79,6 +83,13 @@ export function explainFailedCheck(
   check: EligibilityCheck,
   rules: Record<string, any> | null | undefined,
 ): string {
+  // These conditions can't be answered from the profile, so there is nothing to add to it.
+  if (check.key === 'special_eligibility') {
+    return `This scheme needs one of: ${check.requiredText.replace(/_/g, ' ')}. Check the official criteria to confirm.`;
+  }
+  if (check.key === 'beneficiary') {
+    return `This scheme's benefit is for a ${check.requiredText.replace(/_/g, ' ')}, not the applicant.`;
+  }
   if (check.actualText === 'Not provided') {
     return `Add your ${check.label.toLowerCase()} to your profile so we can check this.`;
   }
@@ -103,5 +114,46 @@ export function explainFailedCheck(
       return `This scheme is for: ${check.requiredText}. Your occupation is ${check.actualText}.`;
     default:
       return `${check.label} must be ${check.requiredText}. Yours is ${check.actualText}.`;
+  }
+}
+
+const LAKH = 100_000;
+const CRORE = 10_000_000;
+
+/** 250000 → "₹2.5 lakh", 10000000 → "₹1 crore". */
+export function formatRupees(amount: number): string {
+  const trim = (n: number) => String(Number(n.toFixed(2)));
+  if (amount >= CRORE) return `₹${trim(amount / CRORE)} crore`;
+  if (amount >= LAKH) return `₹${trim(amount / LAKH)} lakh`;
+  return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+/** The one missing criterion of a near match, e.g. "Needs: income up to ₹2.5 lakh". */
+export function nearMatchNeeds(scheme: NearMatchedScheme): string {
+  const required = scheme.match_reason?.[scheme.failing_key]?.required;
+  switch (scheme.failing_key) {
+    case 'age':
+      return scheme.qualifies_at_age != null
+        ? `Needs: age ${scheme.qualifies_at_age}+`
+        : 'Needs: a different age';
+    case 'income_bracket': {
+      const max = bracketUpper(required);
+      return max !== null
+        ? `Needs: income up to ${formatRupees(max)}`
+        : `Needs: income ${toText(required, 'in range')}`;
+    }
+    case 'occupation_category': {
+      const allowed = (Array.isArray(required) ? required : [required])
+        .filter(v => v !== null && v !== undefined && v !== '')
+        .map(v => {
+          const option = OCCUPATION_OPTIONS.find(
+            o => o.value.toLowerCase() === String(v).trim().toLowerCase(),
+          );
+          return option?.label ?? String(v);
+        });
+      return allowed.length > 0
+        ? `Needs: ${allowed.join(' or ')}`
+        : 'Needs: a different occupation';
+    }
   }
 }

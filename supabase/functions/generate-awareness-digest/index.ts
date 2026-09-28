@@ -82,6 +82,15 @@ async function generateForUser(userId: string): Promise<{ notifications_created:
   if (priorError) throw priorError;
   const priorIds = new Set((priorMatches ?? []).map(row => row.scheme_id));
 
+  // Schemes the user was only too young for. If the profile age has since reached
+  // qualifies_at_age, the user has aged into them.
+  const { data: priorAgeNearMatches, error: nearError } = await supabase
+    .from('user_near_matches')
+    .select('scheme_id, qualifies_at_age')
+    .eq('user_id', userId)
+    .eq('failing_key', 'age');
+  if (nearError) throw nearError;
+
   // Reuse the production two-stage matcher. Snapshotting before and after gives
   // the set of schemes that have newly entered this user's eligible matches.
   const matchResponse = await fetch(`${SUPABASE_URL}/functions/v1/match-schemes`, {
@@ -105,11 +114,37 @@ async function generateForUser(userId: string): Promise<{ notifications_created:
   const newlyMatchedIds = currentIds.filter(id => !priorIds.has(id));
 
   const findings: Finding[] = [];
-  if (newlyMatchedIds.length > 0) {
+  const agedIntoIds = new Set<string>();
+  const agedInto = (priorAgeNearMatches ?? []).filter(row =>
+    profile.age !== null && row.qualifies_at_age !== null && profile.age >= row.qualifies_at_age);
+  if (agedInto.length > 0) {
+    // Checked directly rather than via user_matches, which keeps only the top-ranked
+    // matches, so crossing an age threshold is never missed.
+    const { data: schemes, error } = await supabase
+      .from('schemes')
+      .select('id, title, description, benefit_summary, eligibility_rules, states')
+      .eq('status', 'active')
+      .in('id', agedInto.map(row => row.scheme_id));
+    if (error) throw error;
+    for (const scheme of (schemes ?? []) as Scheme[]) {
+      if (!stateIsSupported(profile as Profile, scheme.states)) continue;
+      if (!checkEligibility(profile as Profile, scheme).passed) continue;
+      agedIntoIds.add(scheme.id);
+      findings.push({
+        user_id: userId,
+        scheme_id: scheme.id,
+        notification_type: 'new_match',
+        change_summary: `Now that you are ${profile.age}, you may be eligible for ${scheme.title}.`,
+      });
+    }
+  }
+
+  const otherNewIds = newlyMatchedIds.filter(id => !agedIntoIds.has(id));
+  if (otherNewIds.length > 0) {
     const { data: schemes, error } = await supabase
       .from('schemes')
       .select('id, title')
-      .in('id', newlyMatchedIds);
+      .in('id', otherNewIds);
     if (error) throw error;
     for (const scheme of schemes ?? []) {
       findings.push({

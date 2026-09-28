@@ -15,6 +15,10 @@ interface SchemeListCardProps {
   userAge?: number | null;
   /** Shows a "Deadline soon" pill, e.g. when a deadline_soon notification exists. */
   deadlineSoon?: boolean;
+  /** Shows a warning pill with the one missing criterion, e.g. "Needs: income up to ₹2.5 lakh". */
+  needs?: string;
+  /** Shows "Eligible when you turn X" for a scheme the user will age into. */
+  eligibleAtAge?: number | null;
   /** Replaces the chevron with an icon button; also offered to screen readers as an action. */
   action?: { icon: IconName; label: string; onPress: () => void };
 }
@@ -29,6 +33,8 @@ export default function SchemeListCard({
   matched,
   userAge,
   deadlineSoon,
+  needs,
+  eligibleAtAge,
   action,
 }: SchemeListCardProps) {
   const matchInfo = scheme as MatchedScheme;
@@ -51,6 +57,8 @@ export default function SchemeListCard({
     isMatched && 'Matched for you',
     eligibleFromAge !== null && `Eligible from age ${eligibleFromAge}`,
     deadlineSoon && 'Deadline soon',
+    needs,
+    eligibleAtAge != null && `Eligible when you turn ${eligibleAtAge}`,
     needsVerification && 'Verify details',
   ]
     .filter(Boolean)
@@ -125,6 +133,22 @@ export default function SchemeListCard({
               label="Deadline soon"
             />
           )}
+          {needs ? (
+            <StatusPill
+              size="sm"
+              tone="warning"
+              icon="alert-circle-outline"
+              label={needs}
+            />
+          ) : null}
+          {eligibleAtAge != null ? (
+            <StatusPill
+              size="sm"
+              tone="info"
+              icon="calendar-outline"
+              label={`Eligible when you turn ${eligibleAtAge}`}
+            />
+          ) : null}
           {needsVerification && (
             <StatusPill
               size="sm"
