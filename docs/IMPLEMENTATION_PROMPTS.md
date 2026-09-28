@@ -339,6 +339,47 @@ supabase/migrations/20260923140000_*.sql.
 Run tsc and lint.
 ```
 
+### Backend requirements for Step 10
+
+The app code assumes the following about the `notifications` table. Check the migration
+(`supabase/migrations/20260923140000_*.sql`) and add anything missing in a new migration.
+
+1. **Column name.** The read flag must be called `is_read` (boolean, default `false`). The app reads it,
+   filters on it and updates it by that name, and the `AppNotification` type in
+   `src/types/notification.ts` matches it.
+2. **Select permission.** Users must be able to read their own rows. Realtime applies the same RLS check
+   before it delivers an INSERT event, so without this policy the list and the live updates both stay empty.
+3. **Update permission.** Users must be able to update their own rows. Without this policy, mark-read and
+   mark-all-read fail, and the optimistic change in the app rolls back. Only `is_read` needs to be writable.
+4. **Realtime.** Add the table to the `supabase_realtime` publication. Without it, new-notification pushes
+   never arrive, and the list and badges only update on refetch or pull-to-refresh.
+
+```sql
+alter table public.notifications enable row level security;
+
+create policy "Users read their own notifications"
+  on public.notifications for select
+  using (auth.uid() = user_id);
+
+create policy "Users mark their own notifications read"
+  on public.notifications for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Limit what the update policy can change to the read flag.
+revoke update on public.notifications from authenticated;
+grant update (is_read) on public.notifications to authenticated;
+
+alter publication supabase_realtime add table public.notifications;
+```
+
+Inserts need no user policy, because only `generate-awareness-digest` writes rows and it uses the service role.
+
+**Run order after a profile save.** `generate-awareness-digest` runs `match-schemes` itself and finds
+`new_match` items by comparing `user_matches` before and after that run. After a profile save, call
+`refreshDigest` *instead of* `runSchemeMatch`, not after it. Otherwise the matches are already up to date
+when the digest runs, and it creates no `new_match` notifications.
+
 ---
 
 ## Step 11: Saved schemes and Profile

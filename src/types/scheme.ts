@@ -34,6 +34,8 @@ export interface MatchedScheme extends Scheme {
   match_score: number | null;
   match_reason: Record<string, { required: unknown; actual: unknown; pass: boolean; unverified?: boolean }> | null;
   viewed: boolean;
+  /** When match-schemes last wrote this row. */
+  matched_at?: string | null;
 }
 
 /** A bookmarks row joined with its scheme, as returned by getBookmarks. */

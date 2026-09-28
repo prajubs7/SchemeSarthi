@@ -24,7 +24,8 @@ export type ButtonVariant =
   | 'secondary'
   | 'outline'
   | 'ghost'
-  | 'danger';
+  | 'danger'
+  | 'dangerGhost';
 export type ButtonSize = 'md' | 'lg';
 
 export interface ButtonProps {
@@ -73,6 +74,12 @@ const variantColors: Record<ButtonVariant, VariantColors> = {
   },
   ghost: { bg: null, pressedBg: 'primarySoft', fg: 'primary', border: null },
   danger: { bg: 'danger', pressedBg: null, fg: 'white', border: null },
+  dangerGhost: {
+    bg: null,
+    pressedBg: 'dangerSoft',
+    fg: 'danger',
+    border: null,
+  },
 };
 
 export function Button({

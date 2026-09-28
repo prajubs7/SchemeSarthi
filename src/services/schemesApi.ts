@@ -13,6 +13,7 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
       match_score,
       match_reason,
       viewed,
+      matched_at,
       schemes (*)
     `
     )
@@ -26,7 +27,18 @@ export async function getMatchedSchemes(userId: string): Promise<MatchedScheme[]
     match_score: row.match_score,
     match_reason: row.match_reason,
     viewed: row.viewed,
+    matched_at: row.matched_at ?? null,
   }));
+}
+
+export async function countMatchedSchemes(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('user_matches')
+    .select('scheme_id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getSchemeById(schemeId: string): Promise<Scheme> {

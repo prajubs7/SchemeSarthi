@@ -30,6 +30,8 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   onClear?: () => void;
   /** Container style. */
   style?: StyleProp<ViewStyle>;
+  /** Style for the bordered field box, e.g. a compact multiline composer. */
+  fieldStyle?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
 }
 
@@ -45,6 +47,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
       multiline,
       editable = true,
       style,
+      fieldStyle,
       inputStyle,
       onFocus,
       onBlur,
@@ -87,6 +90,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             focused && styles.fieldFocused,
             hasError && styles.fieldError,
             !editable && styles.fieldDisabled,
+            fieldStyle,
           ]}
         >
           {leftIcon ? (

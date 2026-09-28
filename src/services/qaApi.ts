@@ -8,6 +8,16 @@ export interface QaResult {
   helpful: boolean | null;
 }
 
+/** A row of scheme_qa_log, as returned by getQaHistory. */
+export interface QaLogEntry {
+  id: string;
+  question: string;
+  answer: string;
+  was_grounded: boolean;
+  helpful: boolean | null;
+  created_at: string;
+}
+
 export async function askSchemeQuestion(
   userId: string,
   schemeId: string,
@@ -47,14 +57,14 @@ export async function setQaHelpful(logId: string, helpful: boolean): Promise<voi
   if (error) throw error;
 }
 
-export async function getQaHistory(userId: string, schemeId: string) {
+export async function getQaHistory(userId: string, schemeId: string): Promise<QaLogEntry[]> {
   const { data, error } = await supabase
     .from('scheme_qa_log')
-    .select('*')
+    .select('id, question, answer, was_grounded, helpful, created_at')
     .eq('user_id', userId)
     .eq('scheme_id', schemeId)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as QaLogEntry[];
 }

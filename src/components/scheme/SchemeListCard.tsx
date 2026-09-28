@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Card, Icon, StatusPill } from '../ui';
+import { AppText, Card, Icon, IconButton, IconName, StatusPill } from '../ui';
 import { colors, sizes, spacing } from '../../theme';
 import { Scheme, MatchedScheme } from '../../types/scheme';
 import { schemeMinAge } from '../../constants/schemeCategories';
@@ -13,7 +13,14 @@ interface SchemeListCardProps {
   matched?: boolean;
   /** When below the scheme's minimum age, shows "Eligible from age X". */
   userAge?: number | null;
+  /** Shows a "Deadline soon" pill, e.g. when a deadline_soon notification exists. */
+  deadlineSoon?: boolean;
+  /** Replaces the chevron with an icon button; also offered to screen readers as an action. */
+  action?: { icon: IconName; label: string; onPress: () => void };
 }
+
+const ACTIVATE = 'activate';
+const TRAILING_ACTION = 'trailingAction';
 
 export default function SchemeListCard({
   scheme,
@@ -21,6 +28,8 @@ export default function SchemeListCard({
   showMatchInfo,
   matched,
   userAge,
+  deadlineSoon,
+  action,
 }: SchemeListCardProps) {
   const matchInfo = scheme as MatchedScheme;
   const isNew = showMatchInfo && matchInfo.viewed === false;
@@ -41,6 +50,7 @@ export default function SchemeListCard({
     `${levelLabel} scheme`,
     isMatched && 'Matched for you',
     eligibleFromAge !== null && `Eligible from age ${eligibleFromAge}`,
+    deadlineSoon && 'Deadline soon',
     needsVerification && 'Verify details',
   ]
     .filter(Boolean)
@@ -52,6 +62,15 @@ export default function SchemeListCard({
       padding="none"
       accessibilityLabel={a11yLabel}
       accessibilityHint="Opens scheme details"
+      accessibilityActions={
+        action
+          ? [{ name: ACTIVATE }, { name: TRAILING_ACTION, label: action.label }]
+          : undefined
+      }
+      onAccessibilityAction={e => {
+        if (e.nativeEvent.actionName === ACTIVATE) onPress();
+        else if (e.nativeEvent.actionName === TRAILING_ACTION) action?.onPress();
+      }}
       style={styles.card}
     >
       {/* Left accent bar: instant visual cue for central vs state,
@@ -98,6 +117,14 @@ export default function SchemeListCard({
               label={`Eligible from age ${eligibleFromAge}`}
             />
           )}
+          {deadlineSoon && (
+            <StatusPill
+              size="sm"
+              tone="warning"
+              icon="time-outline"
+              label="Deadline soon"
+            />
+          )}
           {needsVerification && (
             <StatusPill
               size="sm"
@@ -111,7 +138,18 @@ export default function SchemeListCard({
 
       {/* Chevron affordance: signals tappability without relying on color alone,
           important for accessibility with an older/less tech-familiar audience */}
-      <Icon name="chevron-forward" color="textMuted" style={styles.chevron} />
+      {action ? (
+        <IconButton
+          icon={action.icon}
+          onPress={action.onPress}
+          accessibilityLabel={action.label}
+          variant="plain"
+          color="textSecondary"
+          style={styles.trailingAction}
+        />
+      ) : (
+        <Icon name="chevron-forward" color="textMuted" style={styles.chevron} />
+      )}
     </Card>
   );
 }
@@ -156,5 +194,9 @@ const styles = StyleSheet.create({
   chevron: {
     alignSelf: 'center',
     marginRight: spacing.md,
+  },
+  trailingAction: {
+    alignSelf: 'center',
+    marginRight: spacing.xs,
   },
 });

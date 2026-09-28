@@ -27,7 +27,7 @@ export default function AppStack() {
       <Stack.Screen
         name="SchemeQA"
         component={SchemeQAScreen}
-        options={({ route }) => ({ title: route.params.schemeTitle })}
+        options={{ title: 'Ask Sarthi' }}
       />
       <Stack.Screen
         name="Notifications"
