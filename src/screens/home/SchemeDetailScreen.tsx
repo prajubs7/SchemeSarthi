@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import { getSchemeById, markSchemeViewed } from '../../services/schemesApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useBookmarks } from '../../hooks/useBookmarks';
-import { useSchemeMatches } from '../../hooks/useSchemeMatches';
+import { useNearMatches, useSchemeMatches } from '../../hooks/useSchemeMatches';
 import { useDocumentChecklist } from '../../hooks/useDocumentChecklist';
 import {
   AppText,
@@ -59,7 +59,7 @@ const VERDICT: Record<
   },
   not_eligible: {
     title: 'Not eligible yet',
-    message: "You don't meet all the criteria below.",
+    message: "You're one criterion away from this scheme.",
     icon: 'close-circle',
     tone: 'danger',
     color: 'danger',
@@ -162,6 +162,7 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
   const queryClient = useQueryClient();
   const profile = useSelector((state: RootState) => state.profile.profile);
   const matches = useSchemeMatches(user?.id);
+  const nearMatches = useNearMatches(user?.id);
   const bookmarks = useBookmarks(user?.id);
   const checklist = useDocumentChecklist(schemeId);
 
@@ -184,13 +185,15 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
   }, [user, schemeId, queryClient]);
 
   const matchedRow = matches.data?.find(s => s.id === schemeId);
+  const nearRow = nearMatches.data?.find(s => s.id === schemeId);
   const checks = useMemo(() => {
     if (matchedRow?.match_reason) return formatMatchReasons(matchedRow.match_reason);
+    if (nearRow?.match_reason) return formatMatchReasons(nearRow.match_reason);
     if (scheme && profile) {
       return formatMatchReasons(checkEligibility(profile, scheme).reason);
     }
     return [];
-  }, [matchedRow, scheme, profile]);
+  }, [matchedRow, nearRow, scheme, profile]);
 
   const saved = bookmarks.isBookmarked(schemeId);
   const officialLink = scheme?.official_link ?? null;
@@ -237,13 +240,16 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
       schemeId: scheme.id,
       schemeTitle: scheme.title,
     });
-  const editProfile = () =>
-    navigation.navigate('ProfileSetup', { mode: 'edit' });
 
   const status = STATUS_PILL[scheme.status];
   const isCentral = scheme.scheme_level === 'central';
   const failed = checks.filter(c => c.status === 'fail');
-  const verdict = checks.length > 0 ? VERDICT[eligibilityVerdict(checks)] : null;
+  const verdictKey = checks.length > 0 ? eligibilityVerdict(checks) : null;
+  // "Not eligible" is only worth showing when the scheme is a near match (one criterion away).
+  const verdict =
+    verdictKey && (verdictKey !== 'not_eligible' || nearRow)
+      ? VERDICT[verdictKey]
+      : null;
   const documents = scheme.required_documents ?? [];
   const readyCount = documents.filter(d => checklist.checked.includes(d)).length;
   const steps = howToApplySteps(scheme);
@@ -303,63 +309,46 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
       </View>
 
       {/* Your eligibility */}
-      <Card style={styles.section}>
-        <AppText variant="overline" color="textSecondary">
-          Your eligibility
-        </AppText>
-        {verdict ? (
-          <>
-            <View
-              accessible
-              accessibilityLabel={`${verdict.title}. ${verdict.message}`}
-              style={styles.verdict}
-            >
-              <IconCircle icon={verdict.icon} tone={verdict.tone} size="lg" />
-              <View style={styles.verdictText}>
-                <AppText variant="h2" color={verdict.color}>
-                  {verdict.title}
-                </AppText>
-                <AppText variant="bodySm" color="textSecondary">
-                  {verdict.message}
-                </AppText>
-              </View>
+      {verdict ? (
+        <Card style={styles.section}>
+          <AppText variant="overline" color="textSecondary">
+            Your eligibility
+          </AppText>
+          <View
+            accessible
+            accessibilityLabel={`${verdict.title}. ${verdict.message}`}
+            style={styles.verdict}
+          >
+            <IconCircle icon={verdict.icon} tone={verdict.tone} size="lg" />
+            <View style={styles.verdictText}>
+              <AppText variant="h2" color={verdict.color}>
+                {verdict.title}
+              </AppText>
+              <AppText variant="bodySm" color="textSecondary">
+                {verdict.message}
+              </AppText>
             </View>
-            {failed.length === 1 && (
-              <Banner
-                tone="warning"
-                title={`${failed[0].label} doesn't match yet`}
-                message={explainFailedCheck(failed[0], scheme.eligibility_rules)}
-                actionLabel={
-                  failed[0].actualText === 'Not provided'
-                    ? 'Update profile'
-                    : undefined
-                }
-                onAction={editProfile}
-                style={styles.verdictBanner}
-              />
-            )}
-            <Divider />
-            {checks.map(check => (
-              <CriteriaRow
-                key={check.key}
-                label={check.label}
-                status={check.status}
-                requiredText={check.requiredText}
-                actualText={check.actualText}
-              />
-            ))}
-          </>
-        ) : (
-          <Banner
-            tone="info"
-            title="Complete your profile"
-            message="Add your age, state and other details to see if you qualify."
-            actionLabel="Complete profile"
-            onAction={editProfile}
-            style={styles.verdictBanner}
-          />
-        )}
-      </Card>
+          </View>
+          {failed.length === 1 && (
+            <Banner
+              tone="warning"
+              title={`${failed[0].label} doesn't match yet`}
+              message={explainFailedCheck(failed[0], scheme.eligibility_rules)}
+              style={styles.verdictBanner}
+            />
+          )}
+          <Divider />
+          {checks.map(check => (
+            <CriteriaRow
+              key={check.key}
+              label={check.label}
+              status={check.status}
+              requiredText={check.requiredText}
+              actualText={check.actualText}
+            />
+          ))}
+        </Card>
+      ) : null}
 
       {scheme.benefit_summary ? (
         <Section title="Benefits">
