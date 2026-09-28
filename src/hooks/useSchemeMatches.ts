@@ -1,11 +1,23 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { getMatchedSchemes } from '../services/schemesApi';
-import { getAllSchemes } from '../services/schemesApi';
+import {
+  getAllSchemes,
+  getMatchedSchemes,
+  getNearMatchedSchemes,
+} from '../services/schemesApi';
 
 export function useSchemeMatches(userId: string | undefined) {
   return useQuery({
     queryKey: ['schemeMatches', userId],
     queryFn: () => getMatchedSchemes(userId as string),
+    enabled: !!userId,
+  });
+}
+
+// Nested under ['schemeMatches', userId] so existing match invalidations refresh it too.
+export function useNearMatches(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['schemeMatches', userId, 'near'],
+    queryFn: () => getNearMatchedSchemes(userId as string),
     enabled: !!userId,
   });
 }
