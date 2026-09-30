@@ -1,8 +1,8 @@
 // Supabase Edge Function: compute hard eligibility first, then semantic rank.
 import { serve } from 'https://deno.land/std@0.203.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkEligibility, normalize } from '../_shared/eligibility.ts';
-import type { Profile, Scheme, JsonObject } from '../_shared/eligibility.ts';
+import { checkEligibility, findNearMiss, normalize } from '../_shared/eligibility.ts';
+import type { Profile, Scheme, JsonObject, NearMiss } from '../_shared/eligibility.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -11,6 +11,7 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const EMBEDDING_DIMENSIONS = 1536; // Matches scripts/generateEmbeddings.js and schemes.embedding.
 const MATCH_LIMIT = 20;
+const NEAR_MATCH_LIMIT = 10;
 
 async function embedProfile(profileText: string): Promise<number[]> {
   const response = await fetch(
@@ -90,72 +91,105 @@ serve(async req => {
     if (schemesError) return jsonResponse({ error: schemesError.message }, 500);
 
     const eligible: Array<{ scheme: Scheme; reason: JsonObject }> = [];
+    const nearMisses: Array<{ scheme: Scheme; reason: JsonObject; nearMiss: NearMiss }> = [];
     for (const scheme of (candidates ?? []) as Scheme[]) {
       const schemeStates = scheme.states ?? [];
       if (!schemeStates.some(state => normalize(state) === 'all' || (profile.state && normalize(state) === normalize(profile.state)))) {
         continue;
       }
       const result = checkEligibility(profile as Profile, scheme);
-      if (result.passed) eligible.push({ scheme, reason: result.reason });
+      if (result.passed) {
+        eligible.push({ scheme, reason: result.reason });
+        continue;
+      }
+      const nearMiss = findNearMiss(profile as Profile, scheme, result.reason);
+      if (nearMiss) nearMisses.push({ scheme, reason: result.reason, nearMiss });
     }
 
-    let ranked: Array<{ scheme_id: string; similarity: number; match_reason: JsonObject }> = [];
-    if (eligible.length > 0) {
+    // Stage 2: one profile embedding ranks both eligible schemes and near misses.
+    // Schemes without a usable embedding are left out of both lists.
+    const similarities = new Map<string, number>();
+    const rankedIds = [...eligible, ...nearMisses].map(item => item.scheme.id);
+    if (rankedIds.length > 0) {
       const profileText = `Age ${profile.age ?? 'unspecified'}, occupation ${profile.occupation_category ?? 'unspecified'}, income bracket ${profile.income_bracket ?? 'unspecified'}, state ${profile.state ?? 'unspecified'}, social category ${profile.social_category ?? 'unspecified'}, gender ${profile.gender ?? 'unspecified'}`;
       const queryEmbedding = await embedProfile(profileText);
-      const eligibleIds = eligible.map(item => item.scheme.id);
       const { data: embeddedSchemes, error: embeddingError } = await supabase
         .from('schemes')
         .select('id, embedding')
-        .in('id', eligibleIds);
+        .in('id', rankedIds);
       if (embeddingError) return jsonResponse({ error: embeddingError.message }, 500);
-
-      const reasons = new Map(eligible.map(item => [item.scheme.id, item.reason]));
-      ranked = (embeddedSchemes ?? [])
-        .map((scheme: { id: string; embedding: unknown }) => {
-          const vector = parseVector(scheme.embedding);
-          const similarity = vector ? cosineSimilarity(queryEmbedding, vector) : null;
-          return similarity === null
-            ? null
-            : { scheme_id: scheme.id, similarity, match_reason: reasons.get(scheme.id)! };
-        })
-        .filter((match): match is { scheme_id: string; similarity: number; match_reason: JsonObject } => match !== null)
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, MATCH_LIMIT);
+      for (const scheme of (embeddedSchemes ?? []) as Array<{ id: string; embedding: unknown }>) {
+        const vector = parseVector(scheme.embedding);
+        const similarity = vector ? cosineSimilarity(queryEmbedding, vector) : null;
+        if (similarity !== null) similarities.set(scheme.id, similarity);
+      }
     }
+    const byScore = <T extends { scheme: Scheme }>(items: T[], limit: number) =>
+      items
+        .filter(item => similarities.has(item.scheme.id))
+        .sort((a, b) => similarities.get(b.scheme.id)! - similarities.get(a.scheme.id)!)
+        .slice(0, limit);
 
-    // Keep cached results in sync, removing schemes which no longer pass stage 1.
-    const { data: existing, error: existingError } = await supabase
-      .from('user_matches')
-      .select('scheme_id')
-      .eq('user_id', user_id);
-    if (existingError) return jsonResponse({ error: existingError.message }, 500);
-
-    const retainedIds = new Set(ranked.map(match => match.scheme_id));
-    const staleIds = (existing ?? []).map((row: { scheme_id: string }) => row.scheme_id)
-      .filter((id: string) => !retainedIds.has(id));
-    if (staleIds.length > 0) {
-      const { error } = await supabase.from('user_matches').delete().eq('user_id', user_id).in('scheme_id', staleIds);
-      if (error) return jsonResponse({ error: error.message }, 500);
-    }
-
-    const rows = ranked.map(match => ({
+    const now = new Date().toISOString();
+    const rows = byScore(eligible, MATCH_LIMIT).map(({ scheme, reason }) => ({
       user_id,
-      scheme_id: match.scheme_id,
-      match_score: match.similarity,
-      match_reason: match.match_reason,
-      matched_at: new Date().toISOString(),
+      scheme_id: scheme.id,
+      match_score: similarities.get(scheme.id)!,
+      match_reason: reason,
+      matched_at: now,
     }));
-    if (rows.length > 0) {
-      const { error } = await supabase.from('user_matches').upsert(rows, { onConflict: 'user_id,scheme_id' });
-      if (error) return jsonResponse({ error: error.message }, 500);
-    }
+    const nearRows = byScore(nearMisses, NEAR_MATCH_LIMIT).map(({ scheme, reason, nearMiss }) => ({
+      user_id,
+      scheme_id: scheme.id,
+      failing_key: nearMiss.failing_key,
+      qualifies_at_age: nearMiss.qualifies_at_age,
+      match_score: similarities.get(scheme.id)!,
+      match_reason: reason,
+      computed_at: now,
+    }));
 
-    return jsonResponse({ matched_count: rows.length }, 200);
+    // Keep cached results in sync, removing schemes which no longer qualify.
+    const syncError = await syncUserRows('user_matches', user_id, rows)
+      ?? await syncUserRows('user_near_matches', user_id, nearRows);
+    if (syncError) return jsonResponse({ error: syncError }, 500);
+
+    return jsonResponse({
+      matched_count: rows.length,
+      near_match_count: nearRows.length,
+      coming_up: nearRows
+        .filter(row => row.qualifies_at_age !== null)
+        .map(row => ({ scheme_id: row.scheme_id, qualifies_at_age: row.qualifies_at_age })),
+    }, 200);
   } catch (error) {
     return jsonResponse({ error: String(error) }, 500);
   }
 });
+
+/** Replaces a user's cached rows in `table` with `rows`. Returns an error message on failure. */
+async function syncUserRows(
+  table: 'user_matches' | 'user_near_matches',
+  userId: string,
+  rows: Array<{ scheme_id: string }>,
+): Promise<string | null> {
+  const { data: existing, error: existingError } = await supabase
+    .from(table)
+    .select('scheme_id')
+    .eq('user_id', userId);
+  if (existingError) return existingError.message;
+
+  const retainedIds = new Set(rows.map(row => row.scheme_id));
+  const staleIds = (existing ?? []).map((row: { scheme_id: string }) => row.scheme_id)
+    .filter((id: string) => !retainedIds.has(id));
+  if (staleIds.length > 0) {
+    const { error } = await supabase.from(table).delete().eq('user_id', userId).in('scheme_id', staleIds);
+    if (error) return error.message;
+  }
+  if (rows.length > 0) {
+    const { error } = await supabase.from(table).upsert(rows, { onConflict: 'user_id,scheme_id' });
+    if (error) return error.message;
+  }
+  return null;
+}
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {

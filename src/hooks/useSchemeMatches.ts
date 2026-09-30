@@ -1,6 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { getMatchedSchemes } from '../services/schemesApi';
-import { getAllSchemes } from '../services/schemesApi';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  getAllSchemes,
+  getMatchedSchemes,
+  getNearMatchedSchemes,
+} from '../services/schemesApi';
 
 export function useSchemeMatches(userId: string | undefined) {
   return useQuery({
@@ -10,9 +13,21 @@ export function useSchemeMatches(userId: string | undefined) {
   });
 }
 
-export function useAllSchemes(searchQuery?: string) {
+// Nested under ['schemeMatches', userId] so existing match invalidations refresh it too.
+export function useNearMatches(userId: string | undefined) {
   return useQuery({
-    queryKey: ['allSchemes', searchQuery],
-    queryFn: () => getAllSchemes(searchQuery),
+    queryKey: ['schemeMatches', userId, 'near'],
+    queryFn: () => getNearMatchedSchemes(userId as string),
+    enabled: !!userId,
+  });
+}
+
+export function useAllSchemes(searchQuery?: string) {
+  const term = searchQuery?.trim() ?? '';
+  return useQuery({
+    queryKey: ['allSchemes', term],
+    queryFn: () => getAllSchemes(term),
+    // Keep showing the last results while a new search loads, instead of flashing skeletons.
+    placeholderData: keepPreviousData,
   });
 }

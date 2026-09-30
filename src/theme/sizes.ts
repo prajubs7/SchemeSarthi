@@ -1,0 +1,37 @@
+// Fixed component dimensions. Anything pressable is at least `touchTarget`.
+export const sizes = {
+  touchTarget: 48,
+  buttonLg: 56,
+  iconButtonSm: 44,
+  chip: 36,
+  input: 48,
+  inputMultiline: 112,
+  icon: { xs: 14, sm: 16, md: 20, lg: 24, xl: 32, xxl: 48 },
+  iconCircle: { sm: 36, md: 44, lg: 52, xl: 72 },
+  avatar: { sm: 32, md: 40, lg: 56 },
+  categoryTile: 88,
+  /** Fixed-width scheme card in horizontal rows. */
+  compactCard: 264,
+  /** Decorative circle that shades the hero card towards primaryDark. */
+  heroOrb: 220,
+  tabBar: 64,
+  dot: 8,
+  countBadge: 18,
+  progressBar: 8,
+  accentBar: 4,
+  borderWidth: 1,
+  borderWidthFocused: 1.5,
+} as const;
+
+/** hitSlop that grows a bare `md` icon (20) to the 48 touch target. */
+export const iconHitSlop = (sizes.touchTarget - sizes.icon.md) / 2;
+
+export const opacity = {
+  pressed: 0.7,
+  disabled: 0.5,
+  shimmer: 0.6,
+  /** Secondary white text on the primary hero (6.3:1). */
+  onPrimaryMuted: 0.85,
+} as const;
+
+export type IconSize = keyof typeof sizes.icon;
