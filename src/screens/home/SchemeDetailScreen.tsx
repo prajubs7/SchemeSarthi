@@ -20,12 +20,19 @@ import {
   IconCircle,
   IconName,
   InfoRow,
-  LoadingSpinner,
   Screen,
+  Skeleton,
   StatusPill,
   Tone,
 } from '../../components/ui';
-import { colors, ColorToken, opacity, radius, sizes, spacing } from '../../theme';
+import {
+  colors,
+  ColorToken,
+  opacity,
+  radius,
+  sizes,
+  spacing,
+} from '../../theme';
 import { RootState } from '../../store';
 import { RootStackScreenProps } from '../../navigation/types';
 import { Scheme } from '../../types/scheme';
@@ -48,7 +55,13 @@ const STATUS_PILL: Record<Scheme['status'], { label: string; tone: Tone }> = {
 
 const VERDICT: Record<
   EligibilityVerdict,
-  { title: string; message: string; icon: IconName; tone: Tone; color: ColorToken }
+  {
+    title: string;
+    message: string;
+    icon: IconName;
+    tone: Tone;
+    color: ColorToken;
+  }
 > = {
   eligible: {
     title: "You're eligible",
@@ -180,14 +193,17 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
     if (!user) return;
     markSchemeViewed(user.id, schemeId)
       // Refresh match lists so the "new" dots clear.
-      .then(() => queryClient.invalidateQueries({ queryKey: ['schemeMatches'] }))
+      .then(() =>
+        queryClient.invalidateQueries({ queryKey: ['schemeMatches'] }),
+      )
       .catch(() => {});
   }, [user, schemeId, queryClient]);
 
   const matchedRow = matches.data?.find(s => s.id === schemeId);
   const nearRow = nearMatches.data?.find(s => s.id === schemeId);
   const checks = useMemo(() => {
-    if (matchedRow?.match_reason) return formatMatchReasons(matchedRow.match_reason);
+    if (matchedRow?.match_reason)
+      return formatMatchReasons(matchedRow.match_reason);
     if (nearRow?.match_reason) return formatMatchReasons(nearRow.match_reason);
     if (scheme && profile) {
       return formatMatchReasons(checkEligibility(profile, scheme).reason);
@@ -220,9 +236,17 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
         onShare: share,
       }),
     });
-  }, [navigation, scheme, saved, officialLink, user, addBookmark, removeBookmark]);
+  }, [
+    navigation,
+    scheme,
+    saved,
+    officialLink,
+    user,
+    addBookmark,
+    removeBookmark,
+  ]);
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <SchemeDetailSkeleton />;
   if (isError || !scheme) {
     return (
       <ErrorState
@@ -251,7 +275,9 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
       ? VERDICT[verdictKey]
       : null;
   const documents = scheme.required_documents ?? [];
-  const readyCount = documents.filter(d => checklist.checked.includes(d)).length;
+  const readyCount = documents.filter(d =>
+    checklist.checked.includes(d),
+  ).length;
   const steps = howToApplySteps(scheme);
 
   const footer = (
@@ -424,11 +450,46 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
           <InfoRow
             icon="globe-outline"
             label="Official website"
-            value={officialLink.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+            value={officialLink
+              .replace(/^https?:\/\/(www\.)?/, '')
+              .replace(/\/$/, '')}
             onPress={openOfficialSite}
           />
         </Card>
       ) : null}
+    </Screen>
+  );
+}
+
+/** Mirrors the hero and first two cards so the layout doesn't jump when data lands. */
+function SchemeDetailSkeleton() {
+  return (
+    <Screen scroll edges={['left', 'right', 'bottom']}>
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading scheme"
+      >
+        <View style={styles.hero}>
+          <View style={styles.pillRow}>
+            <Skeleton
+              width={spacing.xxl * 2}
+              height={spacing.xl}
+              radius="pill"
+            />
+            <Skeleton
+              width={spacing.xxl * 3}
+              height={spacing.xl}
+              radius="pill"
+            />
+          </View>
+          <Skeleton width="85%" height={spacing.xl + spacing.xs} />
+          <Skeleton width="100%" height={spacing.md} />
+          <Skeleton width="70%" height={spacing.md} />
+        </View>
+        <Skeleton height={spacing.xxl * 4} radius="lg" style={styles.section} />
+        <Skeleton height={spacing.xxl * 5} radius="lg" style={styles.section} />
+      </View>
     </Screen>
   );
 }

@@ -34,7 +34,7 @@ import {
   Icon,
   IconButton,
   IconCircle,
-  LoadingSpinner,
+  Skeleton,
   StatusPill,
   TextField,
 } from '../../components/ui';
@@ -92,8 +92,16 @@ function TypingIndicator() {
   useEffect(() => {
     const pulse = (value: Animated.Value) =>
       Animated.sequence([
-        Animated.timing(value, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(value, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(value, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
       ]);
     const loop = Animated.loop(Animated.stagger(150, dots.map(pulse)));
     loop.start();
@@ -113,7 +121,10 @@ function TypingIndicator() {
           style={[
             styles.dot,
             {
-              opacity: value.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+              opacity: value.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 1],
+              }),
               transform: [
                 {
                   translateY: value.interpolate({
@@ -175,7 +186,9 @@ function AssistantBubble({ entry, onVote }: AssistantBubbleProps) {
           size={44}
           color={entry.helpful === false ? 'primary' : 'textSecondary'}
           accessibilityLabel={
-            entry.helpful === false ? 'Marked as not helpful' : 'Mark as not helpful'
+            entry.helpful === false
+              ? 'Marked as not helpful'
+              : 'Mark as not helpful'
           }
           disabled={entry.helpful === false}
           onPress={() => onVote(entry, false)}
@@ -295,7 +308,8 @@ export default function SchemeQAScreen({ route, navigation }: Props) {
   });
 
   const entries = useMemo(() => history.data ?? [], [history.data]);
-  const pendingQuestion = ask.isPending || ask.isError ? ask.variables : undefined;
+  const pendingQuestion =
+    ask.isPending || ask.isError ? ask.variables : undefined;
 
   const items = useMemo<ChatItem[]>(() => {
     const list: ChatItem[] = entries.flatMap(entry => [
@@ -305,7 +319,9 @@ export default function SchemeQAScreen({ route, navigation }: Props) {
     if (pendingQuestion) {
       list.push({ kind: 'user', key: 'pending-q', text: pendingQuestion });
       list.push(
-        ask.isError ? { kind: 'error', key: 'error' } : { kind: 'typing', key: 'typing' },
+        ask.isError
+          ? { kind: 'error', key: 'error' }
+          : { kind: 'typing', key: 'typing' },
       );
     }
     return list;
@@ -373,7 +389,7 @@ export default function SchemeQAScreen({ route, navigation }: Props) {
   );
 
   const renderEmpty = () => {
-    if (history.isLoading) return <LoadingSpinner />;
+    if (history.isLoading) return <HistorySkeleton />;
     if (history.isError) {
       return (
         <ErrorState
@@ -463,7 +479,36 @@ export default function SchemeQAScreen({ route, navigation }: Props) {
   );
 }
 
+/** Alternating question/answer bubbles while earlier Q&A loads. */
+function HistorySkeleton() {
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading earlier questions"
+      style={styles.historySkeleton}
+    >
+      <Skeleton
+        width="55%"
+        height={spacing.xxl + spacing.sm}
+        radius="lg"
+        style={styles.skeletonUser}
+      />
+      <Skeleton width="80%" height={spacing.xxl * 3} radius="lg" />
+      <Skeleton
+        width="45%"
+        height={spacing.xxl + spacing.sm}
+        radius="lg"
+        style={styles.skeletonUser}
+      />
+      <Skeleton width="75%" height={spacing.xxl * 2} radius="lg" />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  historySkeleton: { gap: spacing.md, paddingVertical: spacing.lg },
+  skeletonUser: { alignSelf: 'flex-end' },
   flex: { flex: 1 },
   headerTitle: { alignItems: 'center' },
   list: { flexGrow: 1, padding: spacing.gutter, gap: spacing.md },

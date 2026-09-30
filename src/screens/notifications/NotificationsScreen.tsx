@@ -12,7 +12,7 @@ import {
   AppText,
   EmptyState,
   ErrorState,
-  LoadingSpinner,
+  ListRowSkeleton,
   Screen,
 } from '../../components/ui';
 import NotificationRow from '../../components/notifications/NotificationRow';
@@ -23,6 +23,7 @@ import { AppNotification } from '../../types/notification';
 type Props = RootStackScreenProps<'Notifications'>;
 
 const DAY = 24 * 60 * 60 * 1000;
+const SKELETON_COUNT = 6;
 
 type Section = { title: string; data: AppNotification[] };
 
@@ -109,10 +110,19 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const open = (n: AppNotification) => {
     if (!n.is_read) markRead(n.id);
-    if (n.scheme_id) navigation.navigate('SchemeDetail', { schemeId: n.scheme_id });
+    if (n.scheme_id)
+      navigation.navigate('SchemeDetail', { schemeId: n.scheme_id });
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <Screen>
+        {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+          <ListRowSkeleton key={i} />
+        ))}
+      </Screen>
+    );
+  }
   if (isError) {
     return (
       <ErrorState

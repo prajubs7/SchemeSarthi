@@ -111,6 +111,28 @@ export function SchemeCardSkeleton({
   );
 }
 
+/** Loading placeholder for an icon + two-line row (notifications, chat history). */
+export function ListRowSkeleton({ style }: { style?: StyleProp<ViewStyle> }) {
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading"
+      style={[styles.row, style]}
+    >
+      <Skeleton
+        width={sizes.iconCircle.sm}
+        height={sizes.iconCircle.sm}
+        radius="pill"
+      />
+      <View style={styles.rowText}>
+        <Skeleton width="85%" height={spacing.md} />
+        <Skeleton width="35%" height={spacing.md} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   block: {
     backgroundColor: colors.surfaceMuted,
@@ -128,4 +150,11 @@ const styles = StyleSheet.create({
   accentBar: { width: sizes.accentBar, backgroundColor: colors.surfaceMuted },
   cardBody: { flex: 1, padding: spacing.lg, gap: spacing.sm },
   pills: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  rowText: { flex: 1, gap: spacing.sm },
 });
