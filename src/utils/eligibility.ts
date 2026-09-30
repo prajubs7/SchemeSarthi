@@ -37,7 +37,7 @@ function asList(value: unknown): unknown[] {
 // "business owner", "female" vs "woman"), so categorical values are compared in this form.
 const SYNONYMS: Record<string, string> = { female: 'woman', male: 'man' };
 function canonical(value: unknown): string {
-  const text = normalize(value).replace(/[s_-]+/g, ' ');
+  const text = normalize(value).replace(/[\s_-]+/g, ' ');
   return SYNONYMS[text] ?? text;
 }
 
@@ -149,7 +149,7 @@ export function checkEligibility(profile: EligibilityProfile, scheme: Eligibilit
     const age = profile.age === null ? NaN : Number(profile.age);
     const byAge = has(rules, 'auto_eligible_min_age') && Number.isFinite(autoAge) && Number.isFinite(age) && age >= autoAge;
     const byCategory = ['sc', 'st'].includes(canonical(profile.social_category))
-      && special.some(value => /sc[s_]*st/i.test(String(value)));
+      && special.some(value => /\bsc[\s_/-]*st\b/i.test(String(value)));
     const ok = byAge || byCategory;
     reason.special_eligibility = {
       required: special, actual: null, pass: ok, ...(ok ? {} : { unverified: true }),
