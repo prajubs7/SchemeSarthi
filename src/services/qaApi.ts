@@ -44,7 +44,8 @@ export async function askSchemeQuestion(
         if (readError instanceof Error && (readError as Error & { fromResponse?: boolean }).fromResponse) throw readError;
       }
     }
-    throw new Error(`${error.message || 'The Q&A service could not answer this question.'}${error instanceof Error && error.cause ? ` (${String(error.cause)})` : ''}`);
+    const cause = (error as Error & { cause?: unknown }).cause;
+    throw new Error(`${error.message || 'The Q&A service could not answer this question.'}${cause ? ` (${String(cause)})` : ''}`);
   }
   return data as QaResult;
 }
