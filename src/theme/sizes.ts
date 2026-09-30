@@ -23,10 +23,15 @@ export const sizes = {
   borderWidthFocused: 1.5,
 } as const;
 
+/** hitSlop that grows a bare `md` icon (20) to the 48 touch target. */
+export const iconHitSlop = (sizes.touchTarget - sizes.icon.md) / 2;
+
 export const opacity = {
   pressed: 0.7,
   disabled: 0.5,
   shimmer: 0.6,
+  /** Secondary white text on the primary hero (6.3:1). */
+  onPrimaryMuted: 0.85,
 } as const;
 
 export type IconSize = keyof typeof sizes.icon;
