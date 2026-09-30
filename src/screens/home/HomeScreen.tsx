@@ -26,7 +26,7 @@ import {
 } from '../../components/ui';
 import SchemeListCard from '../../components/scheme/SchemeListCard';
 import NotificationRow from '../../components/notifications/NotificationRow';
-import { colors, radius, sizes, spacing } from '../../theme';
+import { colors, opacity, radius, sizes, spacing } from '../../theme';
 import { RootState } from '../../store';
 import { MainTabScreenProps } from '../../navigation/types';
 import { AgeGroup, getAgeGroup } from '../../constants/profileOptions';
@@ -499,7 +499,7 @@ function CompactSchemeCard({
 function HomeSkeleton() {
   return (
     <View accessibilityLabel="Loading your schemes" style={styles.skeleton}>
-      <Skeleton height={sizes.heroOrb * 0.8} radius="lg" />
+      <Skeleton height={spacing.xxl * 5} radius="lg" />
       <View style={styles.statRow}>
         <Skeleton height={spacing.xxl * 3} radius="lg" style={styles.flex} />
         <Skeleton height={spacing.xxl * 3} radius="lg" style={styles.flex} />
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     bottom: -sizes.heroOrb / 2,
     backgroundColor: colors.primaryDark,
   },
-  heroMuted: { opacity: 0.85 },
+  heroMuted: { opacity: opacity.onPrimaryMuted },
   heroButton: { marginTop: spacing.md },
   progress: { marginTop: spacing.md },
   statRow: { flexDirection: 'row', gap: spacing.md },

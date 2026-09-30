@@ -16,6 +16,7 @@ import {
   sizes,
   spacing,
   typography,
+  iconHitSlop,
 } from '../../theme';
 import { AppText } from './AppText';
 import { Icon, IconName } from './Icon';
@@ -125,9 +126,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
           {onClear && rest.value ? (
             <Pressable
               onPress={onClear}
-              hitSlop={spacing.md}
+              hitSlop={iconHitSlop}
               accessibilityRole="button"
-              accessibilityLabel={`Clear ${label ?? accessibilityLabel ?? 'text'}`}
+              accessibilityLabel={`Clear ${
+                label ?? accessibilityLabel ?? 'text'
+              }`}
             >
               <Icon name="close-circle" color="textMuted" />
             </Pressable>
@@ -135,7 +138,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
           {secureTextEntry ? (
             <Pressable
               onPress={() => setHidden(h => !h)}
-              hitSlop={spacing.md}
+              hitSlop={iconHitSlop}
               accessibilityRole="button"
               accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
             >

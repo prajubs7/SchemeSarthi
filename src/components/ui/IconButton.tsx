@@ -117,7 +117,8 @@ const styles = StyleSheet.create({
     height: sizes.countBadge,
     paddingHorizontal: spacing.xs,
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    // Deep saffron: white on `accent` is under 4.5:1.
+    backgroundColor: colors.warning,
     borderWidth: sizes.borderWidthFocused,
     borderColor: colors.surface,
     alignItems: 'center',

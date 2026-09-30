@@ -6,7 +6,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { colors, radius, spacing } from '../../theme';
+import { colors, radius, spacing, iconHitSlop } from '../../theme';
 import { AppText } from './AppText';
 import { Button } from './Button';
 import { Icon, IconName } from './Icon';
@@ -80,7 +80,7 @@ export function Banner({
       {onDismiss ? (
         <Pressable
           onPress={onDismiss}
-          hitSlop={spacing.md}
+          hitSlop={iconHitSlop}
           accessibilityRole="button"
           accessibilityLabel={title ? `Dismiss ${title}` : 'Dismiss'}
           style={styles.close}
