@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { useAlert } from '../../components/common/AlertProvider';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
 import { upsertProfile } from '../../services/profileApi';
@@ -10,6 +11,7 @@ import { colors } from '../../constants/colors';
 
 export default function ProfileSetupScreen() {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const dispatch = useDispatch();
 
   const [age, setAge] = useState('');
@@ -23,7 +25,11 @@ export default function ProfileSetupScreen() {
   const handleSubmit = async () => {
     if (!user) return;
     if (!age || !occupation || !state) {
-      Alert.alert('Missing info', 'Please fill in age, occupation, and state.');
+      showAlert({
+        type: 'warning',
+        title: 'Missing info',
+        message: 'Please fill in age, occupation, and state.',
+      });
       return;
     }
 
@@ -42,7 +48,7 @@ export default function ProfileSetupScreen() {
       dispatch(setProfile(profile));
       await runSchemeMatch(user.id); // triggers matching; results land in user_matches
     } catch (err: any) {
-      Alert.alert('Something went wrong', err.message);
+      showAlert({ type: 'error', title: 'Something went wrong', message: err.message });
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../components/common/AlertProvider';
 import { upsertProfile } from '../../services/profileApi';
 import { runSchemeMatch } from '../../services/schemesApi';
 import { setProfile } from '../../store/slices/profileSlice';
@@ -74,6 +74,7 @@ function ChipSelector({
 
 export default function ProfileSetupScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const dispatch = useDispatch();
   const existingProfile = useSelector(
     (state: RootState) => state.profile.profile,
@@ -103,10 +104,11 @@ export default function ProfileSetupScreen({ navigation }: any) {
     console.log("Save form to complete", )
     if (!user) return;
     if (!age || !occupation || !state || !gender || !category) {
-      Alert.alert(
-        'Missing info',
-        'Please fill in all fields to get accurate scheme matches.',
-      );
+      showAlert({
+        type: 'warning',
+        title: 'Missing info',
+        message: 'Please fill in all fields to get accurate scheme matches.',
+      });
       return;
     }
 
@@ -123,13 +125,15 @@ export default function ProfileSetupScreen({ navigation }: any) {
       });
       dispatch(setProfile(profile));
       await runSchemeMatch(user.id);
-      Alert.alert(
-        'Success',
-        'Your profile is saved and schemes have been matched.',
-      );
-      navigation?.goBack?.();
+      showAlert({
+        type: 'success',
+        title: 'Profile saved',
+        message: 'Your profile is saved and schemes have been matched.',
+        dismissable: false,
+        buttons: [{ text: 'Done', onPress: () => navigation?.goBack?.() }],
+      });
     } catch (err: any) {
-      Alert.alert('Something went wrong', err.message);
+      showAlert({ type: 'error', title: 'Something went wrong', message: err.message });
     } finally {
       setLoading(false);
     }
