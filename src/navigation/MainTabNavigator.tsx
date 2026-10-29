@@ -8,6 +8,7 @@ import BookmarksScreen from '../screens/bookmarks/BookmarksScreen';
 import SchemesScreen from '../screens/schemes/SchemesScreen';
 import { MainTabParamList } from './types';
 import { colors } from '../constants/colors';
+import { navHeader } from '../components/common/navHeader';
 import ProfileStack from '../screens/profile/ProfileStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -16,6 +17,7 @@ export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
+        header: navHeader,
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
@@ -36,6 +38,7 @@ export default function MainTabNavigator() {
         component={SchemesScreen}
         options={{
           title: 'Schemes',
+          headerShown: true,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text-outline" color={color} size={size} />
           ),
@@ -46,6 +49,7 @@ export default function MainTabNavigator() {
         component={BookmarksScreen}
         options={{
           title: 'Bookmarks',
+          headerShown: true,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="bookmark" color={color} size={size} />
           ),
