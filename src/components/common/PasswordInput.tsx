@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { colors } from '../../constants/colors';
+import { colors } from '../../theme/colors';
 
 /**
  * Drop-in replacement for <TextInput> on password fields, with an eye icon

@@ -150,7 +150,7 @@ export default function ProfileSetupScreen({ navigation, route }: Props) {
   const isOnboarding = route.params?.mode === 'onboarding';
   const { user } = useAuth();
   const { showAlert } = useAlert();
-  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const existingProfile = useSelector(
     (state: RootState) => state.profile.profile,
   );

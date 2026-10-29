@@ -1,19 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { supabase } from '../../services/supabase';
-import Button from '../../components/common/Button';
-import { colors } from '../../constants/colors';
-import { AuthStackParamList } from '../../navigation/types';
-import { useForm } from '../../hooks/useForm';
-import { ValidationRules } from '../../utils/validationUtils';
-import { validators } from '../../utils/validationUtils';
-
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-
-export interface LoginFormValues extends Record<string, string> {
-  email: string;
-  password: string;
-}
 import { AppText, Banner, Button, TextField } from '../../components/ui';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { spacing } from '../../theme';
@@ -32,42 +19,81 @@ interface FieldErrors {
 }
 
 export default function LoginScreen({ navigation }: Props) {
-  const { showAlert } = useAlert();
-  const validationRules: ValidationRules = {
-    email: {
-      required: 'Email is required',
-      custom: validators.email,
-    },
-    password: {
-      required: 'Password is required',
-      minLength: {
-        value: 6,
-        message: 'Password must be at least 6 characters',
-      },
-    },
-  };
+  const passwordRef = useRef<TextInput>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  // Validate as the user types only after the first submit attempt.
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
-  const form = useForm<LoginFormValues>({
-    initialValues: {
-      email: '',
-      password: '',
-    },
-    validationRules,
-    onSubmit: handleSubmit,
+  const validate = (values: { email: string; password: string }): FieldErrors => ({
+    email: validateEmail(values.email),
+    password: validateRequiredPassword(values.password),
   });
 
-  async function handleSubmit(values: LoginFormValues) {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
+  const onChangeEmail = (value: string) => {
+    setEmail(value);
+    setFormError(null);
+    setResetSentTo(null);
+    if (submitted) {
+      setErrors(validate({ email: value, password }));
+    }
+  };
 
-    if (error) {
-      showAlert({ type: 'error', title: 'Login failed', message: error.message });
+  const onChangePassword = (value: string) => {
+    setPassword(value);
+    setFormError(null);
+    if (submitted) {
+      setErrors(validate({ email, password: value }));
+    }
+  };
+
+  const handleLogin = async () => {
+    setSubmitted(true);
+    const next = validate({ email, password });
+    setErrors(next);
+    if (next.email || next.password) {
       return;
     }
+
+    setLoading(true);
+    setFormError(null);
+    setResetSentTo(null);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      setFormError(authErrorMessage(error));
+    }
     // On success, RootNavigator switches to the main tabs automatically.
-  }
+  };
+
+  const handleForgotPassword = async () => {
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setSubmitted(true);
+      setErrors((prev) => ({ ...prev, email: emailError }));
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    setResetLoading(true);
+    setFormError(null);
+    setResetSentTo(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
+    setResetLoading(false);
+    if (error) {
+      setFormError(authErrorMessage(error));
+      return;
+    }
+    setResetSentTo(trimmedEmail);
+  };
 
   return (
     <AuthLayout

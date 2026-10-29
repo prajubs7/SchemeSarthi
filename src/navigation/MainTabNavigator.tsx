@@ -16,9 +16,8 @@ import {
   useNotificationsRealtime,
 } from '../hooks/useNotifications';
 import { MainTabParamList } from './types';
-import { colors } from '../constants/colors';
+import { colors, sizes, spacing, typography } from '../theme';
 import { navHeader } from '../components/common/navHeader';
-import ProfileStack from '../screens/profile/ProfileStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -75,9 +74,7 @@ export default function MainTabNavigator() {
         options={{
           title: 'Bookmarks',
           headerShown: true,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bookmark" color={color} size={size} />
-          ),
+          tabBarIcon: tabIcon('bookmark-outline', 'bookmark'),
         }}
       />
       <Tab.Screen

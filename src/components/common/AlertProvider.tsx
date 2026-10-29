@@ -7,8 +7,9 @@ import React, {
 } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Button from './Button';
-import { colors } from '../../constants/colors';
+import { colors } from '../../theme/colors';
+import { Button } from '../ui';
+
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info';
 
@@ -37,7 +38,7 @@ const AlertContext = createContext<AlertContextValue | null>(null);
 
 const TYPE_CONFIG: Record<AlertType, { icon: string; color: string; bg: string }> = {
   success: { icon: 'checkmark-circle', color: colors.success, bg: '#E8F5E9' },
-  error: { icon: 'close-circle', color: colors.error, bg: '#FDECEA' },
+  error: { icon: 'close-circle', color: colors.warning, bg: '#FDECEA' },
   warning: { icon: 'warning', color: colors.warning, bg: '#FFF3E0' },
   info: { icon: 'information-circle', color: colors.primary, bg: '#E8F5E9' },
 };
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: colors.primary,
     textAlign: 'center',
   },
   message: {

@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { colors } from '../../constants/colors';
+import { colors } from '../../theme/colors';
+
 
 export interface AppHeaderProps {
   title: string;
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 85,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primarySoft,
     opacity: 0.35,
   },
   circleSmall: {

@@ -27,9 +27,10 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <AlertProvider>
-            <RootNavigator />
+              <RootNavigator />
+            </AlertProvider>
           </AuthProvider>
-          </AlertProvider>
+         
         </QueryClientProvider>
       </Provider>
     </GestureHandlerRootView>
