@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { colors } from '../../constants/colors';
+import { navHeader } from '../../components/common/navHeader';
 import ProfileScreen from './ProfileScreen';
 import ProfileSetupScreen from '../onboarding/ProfileSetupScreen';
 
@@ -15,10 +15,7 @@ const Stack = createNativeStackNavigator<ProfileStackParamList>();
 export default function ProfileStack() {
   return (
     <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: '#fff',
-      }}
+      screenOptions={{ header: navHeader }}
     >
       <Stack.Screen name="ProfileView" component={ProfileScreen} options={{ title: 'Profile' }} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} options={{ title: 'Edit Profile' }} />
