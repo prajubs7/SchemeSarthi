@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useAlert } from '../../components/common/AlertProvider';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { supabase } from '../../services/supabase';
 import Button from '../../components/common/Button';
@@ -10,6 +11,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerify'>;
 
 export default function OtpVerifyScreen({ route }: Props) {
   const { email } = route.params;
+  const { showAlert } = useAlert();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,14 +19,15 @@ export default function OtpVerifyScreen({ route }: Props) {
     setLoading(true);
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'signup' });
     setLoading(false);
-    if (error) Alert.alert('Verification failed', error.message);
+    if (error) {
+      showAlert({ type: 'error', title: 'Verification failed', message: error.message });
+    }
     // On success, RootNavigator automatically switches to MainTabNavigator via
     // the auth state change listener in useAuth — no manual navigation needed.
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Verify your email</Text>
       <Text style={styles.subtitle}>Enter the code sent to {email}</Text>
 
       <TextInput
