@@ -1,202 +1,164 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { useAlert } from '../../components/common/AlertProvider';
-import PasswordInput from '../../components/common/PasswordInput';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useRef, useState } from 'react';
+import { TextInput } from 'react-native';
 import { supabase } from '../../services/supabase';
-import Button from '../../components/common/Button';
-import { colors } from '../../constants/colors';
-import { AuthStackParamList } from '../../navigation/types';
-import { useForm } from '../../hooks/useForm';
-import { ValidationRules, validators } from '../../utils/validationUtils';
+import { AppText, Banner, Button, TextField } from '../../components/ui';
+import { AuthLayout } from '../../components/auth/AuthLayout';
+import { AuthStackScreenProps } from '../../navigation/types';
+import { authErrorMessage } from '../../utils/authErrors';
+import {
+  PASSWORD_RULE_TEXT,
+  validateEmail,
+  validateNewPassword,
+  validatePasswordMatch,
+} from '../../utils/authValidation';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
+type Props = AuthStackScreenProps<'Signup'>;
 
-interface SignupFormValues {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  [key: string]: string;
+interface FieldErrors {
+  email?: string | null;
+  password?: string | null;
+  confirm?: string | null;
 }
 
 export default function SignupScreen({ navigation }: Props) {
-  const { showAlert } = useAlert();
-  const validationRules: ValidationRules = {
-    email: {
-      required: 'Email is required',
-      custom: validators.email,
-    },
-    password: {
-      required: 'Password is required',
-      minLength: {
-        value: 6,
-        message: 'Password must be at least 6 characters',
-      },
-    },
-    confirmPassword: {
-      required: 'Please confirm your password',
-      custom: value => {
-        if (value !== form.values.password) {
-          return 'Passwords do not match';
-        }
-        return undefined;
-      },
-    },
-  };
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  // Validate as the user types only after the first submit attempt.
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<SignupFormValues>({
-    initialValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
-    validationRules,
-    onSubmit: handleSubmit,
+  const validate = (values: {
+    email: string;
+    password: string;
+    confirm: string;
+  }): FieldErrors => ({
+    email: validateEmail(values.email),
+    password: validateNewPassword(values.password),
+    confirm: validatePasswordMatch(values.password, values.confirm),
   });
 
-  // Keep the confirm-password error in sync when the password itself changes
-  const handlePasswordChange = (text: string) => {
-    form.handleChange('password')(text);
-    if (form.getFieldTouched('confirmPassword')) {
-      form.setFieldError(
-        'confirmPassword',
-        form.values.confirmPassword && form.values.confirmPassword !== text
-          ? 'Passwords do not match'
-          : undefined,
-      );
+  const update = (field: 'email' | 'password' | 'confirm', value: string) => {
+    const values = { email, password, confirm, [field]: value };
+    if (field === 'email') setEmail(value);
+    if (field === 'password') setPassword(value);
+    if (field === 'confirm') setConfirm(value);
+    setFormError(null);
+    if (submitted) {
+      setErrors(validate(values));
     }
   };
 
-  async function handleSubmit(values: SignupFormValues) {
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-    });
-
-    if (error) {
-      showAlert({ type: 'error', title: 'Signup failed', message: error.message });
+  const handleSignup = async () => {
+    setSubmitted(true);
+    const next = validate({ email, password, confirm });
+    setErrors(next);
+    if (next.email || next.password || next.confirm) {
       return;
     }
 
-    // Reset form on success
-    form.resetForm();
-    navigation.navigate('OtpVerify', { email: values.email });
-  }
+    const trimmedEmail = email.trim();
+    setLoading(true);
+    setFormError(null);
+    const { data, error } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      setFormError(authErrorMessage(error));
+      return;
+    }
+    // Supabase hides existing, confirmed accounts by returning a user with no identities.
+    if (data.user && data.user.identities?.length === 0) {
+      setFormError(authErrorMessage({ code: 'user_already_exists' }));
+      return;
+    }
+    navigation.navigate('OtpVerify', { email: trimmedEmail });
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Email Input */}
-      <View>
-        <TextInput
-          style={[
-            styles.input,
-            form.getFieldError('email') && form.getFieldTouched('email')
-              ? styles.inputError
-              : null,
-          ]}
-          placeholder="Email"
-          placeholderTextColor={colors.textSecondary}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!form.isSubmitting}
-          value={form.values.email}
-          onChangeText={form.handleChange('email')}
-          onBlur={form.handleBlur('email')}
-        />
-        {form.getFieldTouched('email') && form.getFieldError('email') && (
-          <Text style={styles.errorText}>{form.getFieldError('email')}</Text>
-        )}
-      </View>
+    <AuthLayout
+      title="Create your account"
+      subtitle="It takes a minute. We will email you a code to confirm."
+      footer={
+        <>
+          <AppText variant="body" color="textSecondary">
+            Already have an account?
+          </AppText>
+          <Button
+            title="Log in"
+            variant="ghost"
+            fullWidth={false}
+            onPress={() => navigation.goBack()}
+          />
+        </>
+      }
+    >
+      {formError ? <Banner tone="danger" message={formError} /> : null}
 
-      {/* Password Input */}
-      <View>
-        <PasswordInput
-          style={[
-            styles.input,
-            form.getFieldError('password') && form.getFieldTouched('password')
-              ? styles.inputError
-              : null,
-          ]}
-          placeholder="Password (min 6 characters)"
-          placeholderTextColor={colors.textSecondary}
-          editable={!form.isSubmitting}
-          value={form.values.password}
-          onChangeText={handlePasswordChange}
-          onBlur={form.handleBlur('password')}
-        />
-        {form.getFieldTouched('password') && form.getFieldError('password') && (
-          <Text style={styles.errorText}>{form.getFieldError('password')}</Text>
-        )}
-      </View>
-
-      {/* Confirm Password Input */}
-      <View>
-        <PasswordInput
-          style={[
-            styles.input,
-            form.getFieldError('confirmPassword') &&
-            form.getFieldTouched('confirmPassword')
-              ? styles.inputError
-              : null,
-          ]}
-          placeholder="Confirm Password"
-          placeholderTextColor={colors.textSecondary}
-          editable={!form.isSubmitting}
-          value={form.values.confirmPassword}
-          onChangeText={form.handleChange('confirmPassword')}
-          onBlur={form.handleBlur('confirmPassword')}
-        />
-        {form.getFieldTouched('confirmPassword') &&
-          form.getFieldError('confirmPassword') && (
-            <Text style={styles.errorText}>
-              {form.getFieldError('confirmPassword')}
-            </Text>
-          )}
-      </View>
-
-      {/* Sign Up Button */}
-      <Button
-        title="Sign Up"
-        onPress={form.handleSubmit}
-        loading={form.isSubmitting}
-        disabled={form.isSubmitting}
+      <TextField
+        label="Email"
+        placeholder="name@example.com"
+        leftIcon="mail-outline"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        value={email}
+        onChangeText={v => update('email', v)}
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        error={errors.email}
       />
-    </View>
+      <TextField
+        ref={passwordRef}
+        label="Password"
+        placeholder="Create a password"
+        leftIcon="lock-closed-outline"
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        value={password}
+        onChangeText={v => update('password', v)}
+        onSubmitEditing={() => confirmRef.current?.focus()}
+        helperText={PASSWORD_RULE_TEXT}
+        error={errors.password}
+      />
+      <TextField
+        ref={confirmRef}
+        label="Confirm password"
+        placeholder="Re-enter your password"
+        leftIcon="lock-closed-outline"
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="go"
+        value={confirm}
+        onChangeText={v => update('confirm', v)}
+        onSubmitEditing={handleSignup}
+        error={errors.confirm}
+      />
+
+      <AppText variant="caption" color="textMuted">
+        By creating an account, you agree to our Terms of Service and Privacy
+        Policy.
+      </AppText>
+
+      <Button
+        title="Create account"
+        size="lg"
+        onPress={handleSignup}
+        loading={loading}
+      />
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 4,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEE2E2',
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 12,
-    marginBottom: 12,
-    fontWeight: '500',
-  },
-});

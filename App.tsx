@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import RootNavigator from './src/navigation/RootNavigator';
+import { AuthProvider } from './src/hooks/useAuth';
 import { store } from './src/store';
 import { AlertProvider } from './src/components/common/AlertProvider';
 
@@ -20,14 +22,20 @@ export default function App() {
     console.log('========== TEST LOG ==========');
   }, []);
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
-          <AlertProvider>
+          <AuthProvider>
+            <AlertProvider>
             <RootNavigator />
+          </AuthProvider>
           </AlertProvider>
         </QueryClientProvider>
       </Provider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

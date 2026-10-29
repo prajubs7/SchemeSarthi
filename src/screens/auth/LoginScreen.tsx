@@ -1,8 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { useAlert } from '../../components/common/AlertProvider';
-import PasswordInput from '../../components/common/PasswordInput';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useRef, useState } from 'react';
+import { StyleSheet, TextInput } from 'react-native';
 import { supabase } from '../../services/supabase';
 import Button from '../../components/common/Button';
 import { colors } from '../../constants/colors';
@@ -16,6 +13,22 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 export interface LoginFormValues extends Record<string, string> {
   email: string;
   password: string;
+}
+import { AppText, Banner, Button, TextField } from '../../components/ui';
+import { AuthLayout } from '../../components/auth/AuthLayout';
+import { spacing } from '../../theme';
+import { AuthStackScreenProps } from '../../navigation/types';
+import { authErrorMessage } from '../../utils/authErrors';
+import {
+  validateEmail,
+  validateRequiredPassword,
+} from '../../utils/authValidation';
+
+type Props = AuthStackScreenProps<'Login'>;
+
+interface FieldErrors {
+  email?: string | null;
+  password?: string | null;
 }
 
 export default function LoginScreen({ navigation }: Props) {
@@ -57,109 +70,84 @@ export default function LoginScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Email Input */}
-      <View>
-        <TextInput
-          style={[
-            styles.input,
-            form.getFieldError('email') && form.getFieldTouched('email')
-              ? styles.inputError
-              : null,
-          ]}
-          placeholder="Email"
-          placeholderTextColor={colors.textSecondary}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!form.isSubmitting}
-          value={form.values.email}
-          onChangeText={form.handleChange('email')}
-          onBlur={form.handleBlur('email')}
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Log in to see schemes that match your profile."
+      footer={
+        <>
+          <AppText variant="body" color="textSecondary">
+            New here?
+          </AppText>
+          <Button
+            title="Create account"
+            variant="ghost"
+            fullWidth={false}
+            onPress={() => navigation.navigate('Signup')}
+          />
+        </>
+      }
+    >
+      {resetSentTo ? (
+        <Banner
+          tone="success"
+          title="Check your inbox"
+          message={`We sent a password reset link to ${resetSentTo}.`}
+          onDismiss={() => setResetSentTo(null)}
         />
-        {form.getFieldTouched('email') && form.getFieldError('email') && (
-          <Text style={styles.errorText}>{form.getFieldError('email')}</Text>
-        )}
-      </View>
+      ) : null}
+      {formError ? <Banner tone="danger" message={formError} /> : null}
 
-      {/* Password Input */}
-      <View>
-        <PasswordInput
-          style={[
-            styles.input,
-            form.getFieldError('password') && form.getFieldTouched('password')
-              ? styles.inputError
-              : null,
-          ]}
-          placeholder="Password"
-          placeholderTextColor={colors.textSecondary}
-          editable={!form.isSubmitting}
-          value={form.values.password}
-          onChangeText={form.handleChange('password')}
-          onBlur={form.handleBlur('password')}
-        />
-        {form.getFieldTouched('password') && form.getFieldError('password') && (
-          <Text style={styles.errorText}>{form.getFieldError('password')}</Text>
-        )}
-      </View>
-
-      {/* Login Button */}
-      <Button
-        title="Log In"
-        onPress={form.handleSubmit}
-        loading={form.isSubmitting}
-        disabled={form.isSubmitting}
+      <TextField
+        label="Email"
+        placeholder="name@example.com"
+        leftIcon="mail-outline"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        value={email}
+        onChangeText={onChangeEmail}
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        error={errors.email}
+      />
+      <TextField
+        ref={passwordRef}
+        label="Password"
+        placeholder="Your password"
+        leftIcon="lock-closed-outline"
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType="go"
+        value={password}
+        onChangeText={onChangePassword}
+        onSubmitEditing={handleLogin}
+        error={errors.password}
       />
 
-      {/* Sign Up Button */}
       <Button
-        title="Create an account"
-        variant="outline"
-        onPress={() => navigation.navigate('Signup')}
-        style={{ marginTop: 12 }}
-        disabled={form.isSubmitting}
+        title="Log in"
+        size="lg"
+        onPress={handleLogin}
+        loading={loading}
+        disabled={resetLoading}
       />
-    </View>
+      <Button
+        title="Forgot password?"
+        variant="ghost"
+        onPress={handleForgotPassword}
+        loading={resetLoading}
+        disabled={loading}
+        accessibilityHint="Sends a password reset link to the email above"
+        style={styles.forgot}
+      />
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 4,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: '#DC2626',
-    backgroundColor: '#FEE2E2',
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 12,
-    marginBottom: 12,
-    fontWeight: '500',
-  },
+  forgot: { marginTop: -spacing.sm },
 });

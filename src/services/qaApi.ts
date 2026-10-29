@@ -1,16 +1,23 @@
 import { supabase } from './supabase';
 
 export interface QaResult {
+  id: string;
   answer: string;
   was_grounded: boolean;
+  model_used: string;
+  helpful: boolean | null;
 }
 
-/**
- * STUB: build the `scheme-qa` Edge Function before this will succeed — see
- * README_SETUP.md. It should retrieve relevant chunks of the scheme's real
- * source text and answer strictly from that, falling back to
- * was_grounded: false when it can't find a confident answer.
- */
+/** A row of scheme_qa_log, as returned by getQaHistory. */
+export interface QaLogEntry {
+  id: string;
+  question: string;
+  answer: string;
+  was_grounded: boolean;
+  helpful: boolean | null;
+  created_at: string;
+}
+
 export async function askSchemeQuestion(
   userId: string,
   schemeId: string,
@@ -20,18 +27,45 @@ export async function askSchemeQuestion(
     body: { user_id: userId, scheme_id: schemeId, question },
   });
 
-  if (error) throw error;
+  if (error) {
+    const context = (error as Error & { context?: Response }).context;
+    if (context) {
+      try {
+        const responseText = await context.clone().text();
+        let payload: { error?: string } | null = null;
+        try { payload = JSON.parse(responseText); } catch { /* The platform can return plain text for startup/deployment errors. */ }
+        if (typeof payload?.error === 'string') {
+          throw Object.assign(new Error(payload.error), { fromResponse: true });
+        }
+        if (responseText.trim()) {
+          throw Object.assign(new Error(`Q&A service returned HTTP ${context.status}: ${responseText.slice(0, 400)}`), { fromResponse: true });
+        }
+      } catch (readError) {
+        if (readError instanceof Error && (readError as Error & { fromResponse?: boolean }).fromResponse) throw readError;
+      }
+    }
+    const cause = (error as Error & { cause?: unknown }).cause;
+    throw new Error(`${error.message || 'The Q&A service could not answer this question.'}${cause ? ` (${String(cause)})` : ''}`);
+  }
   return data as QaResult;
 }
 
-export async function getQaHistory(userId: string, schemeId: string) {
+export async function setQaHelpful(logId: string, helpful: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('scheme_qa_log')
+    .update({ helpful })
+    .eq('id', logId);
+  if (error) throw error;
+}
+
+export async function getQaHistory(userId: string, schemeId: string): Promise<QaLogEntry[]> {
   const { data, error } = await supabase
     .from('scheme_qa_log')
-    .select('*')
+    .select('id, question, answer, was_grounded, helpful, created_at')
     .eq('user_id', userId)
     .eq('scheme_id', schemeId)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as QaLogEntry[];
 }

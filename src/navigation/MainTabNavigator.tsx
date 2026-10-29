@@ -1,11 +1,20 @@
-/* eslint-disable react/no-unstable-nested-components */
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet } from 'react-native';
+import {
+  BottomTabNavigationOptions,
+  createBottomTabNavigator,
+} from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import HomeStack from './HomeStack';
-import BookmarksScreen from '../screens/bookmarks/BookmarksScreen';
+import HomeScreen from '../screens/home/HomeScreen';
 import SchemesScreen from '../screens/schemes/SchemesScreen';
+import BookmarksScreen from '../screens/bookmarks/BookmarksScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import { useAuth } from '../hooks/useAuth';
+import {
+  useNotifications,
+  useNotificationsRealtime,
+} from '../hooks/useNotifications';
 import { MainTabParamList } from './types';
 import { colors } from '../constants/colors';
 import { navHeader } from '../components/common/navHeader';
@@ -13,7 +22,20 @@ import ProfileStack from '../screens/profile/ProfileStack';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+// Outline when idle, filled when active.
+const tabIcon =
+  (outline: string, filled: string): BottomTabNavigationOptions['tabBarIcon'] =>
+  ({ focused, color, size }) =>
+    <Ionicons name={focused ? filled : outline} color={color} size={size} />;
+
 export default function MainTabNavigator() {
+  const insets = useSafeAreaInsets();
+
+  const { user } = useAuth();
+  const { unreadCount } = useNotifications(user?.id);
+  // The tabs stay mounted for the whole signed-in session, so the one Realtime subscription lives here.
+  useNotificationsRealtime(user?.id);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -21,16 +43,21 @@ export default function MainTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: styles.label,
+        tabBarStyle: [
+          styles.bar,
+          { height: sizes.tabBar + insets.bottom, paddingBottom: insets.bottom },
+        ],
+        tabBarBadgeStyle: styles.badge,
       }}
     >
       <Tab.Screen
         name="HomeTab"
-        component={HomeStack}
+        component={HomeScreen}
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
-          ),
+          tabBarIcon: tabIcon('home-outline', 'home'),
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
       <Tab.Screen
@@ -39,13 +66,11 @@ export default function MainTabNavigator() {
         options={{
           title: 'Schemes',
           headerShown: true,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" color={color} size={size} />
-          ),
+          tabBarIcon: tabIcon('document-text-outline', 'document-text'),
         }}
       />
       <Tab.Screen
-        name="BookmarksTab"
+        name="SavedTab"
         component={BookmarksScreen}
         options={{
           title: 'Bookmarks',
@@ -55,24 +80,32 @@ export default function MainTabNavigator() {
           ),
         }}
       />
-      {/* <Tab.Screen
+      <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />,
-        }}sssss
-      /> */}
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileStack} 
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" color={color} size={size} />
-          ),
+          tabBarIcon: tabIcon('person-outline', 'person'),
         }}
       />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: sizes.borderWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+  },
+  label: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontWeight: typography.caption.fontWeight,
+  },
+  badge: {
+    backgroundColor: colors.accent,
+    color: colors.white,
+  },
+});
