@@ -4,8 +4,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 const EMBEDDING_MODEL = 'gemini-embedding-001';
-const ANSWER_MODEL = 'gemini-3.8-flash';
-const FALLBACK_ANSWER_MODEL = 'gemini-3.7-flash';
+const ANSWER_MODEL = 'gemini-3.6-flash';
+const FALLBACK_ANSWER_MODEL = 'gemini-3.5-flash';
+// Gemini sometimes stalls without answering; fail fast so the fallback model can run
+// inside the edge function's wall-clock limit.
+const GEMINI_TIMEOUT_MS = 25000;
 const NO_INFO = "I don't have current information on this.";
 const RELEVANCE_THRESHOLD = 0.55;
 
@@ -13,11 +16,20 @@ type Chunk = { content: string; similarity: number };
 
 async function gemini(path: string, body: unknown) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${path}?key=${GEMINI_API_KEY}`;
-  const maxRetries = 3;
+  const maxRetries = 1;
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    const response = await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        throw new Error('Gemini request timed out: service unavailable');
+      }
+      throw error;
+    }
     const payload = await response.json();
     if (response.ok) return payload;
 
@@ -54,7 +66,7 @@ function intentFor(question: string): 'STATUS' | 'ELIGIBILITY' | 'GENERAL' {
 
 function isTemporaryOverload(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /high demand|overload|\b503\b|UNAVAILABLE|service_unavailable/i.test(message);
+  return /high demand|overload|timed out|\b503\b|UNAVAILABLE|service_unavailable/i.test(message);
 }
 
 function json(body: unknown, status = 200) {
