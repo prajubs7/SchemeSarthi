@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
+import { APP_CONFIG } from '../constants/config';
 import { AuthStackParamList } from './types';
 import { navHeader } from '../components/common/navHeader';
 
@@ -21,11 +22,13 @@ export default function AuthStack() {
         component={SignupScreen}
         options={{ title: 'Create your account' }}
       />
-      <Stack.Screen
-        name="OtpVerify"
-        component={OtpVerifyScreen}
-        options={{ title: 'Verify your email' }}
-      />
+      {APP_CONFIG.otpVerificationEnabled && (
+        <Stack.Screen
+          name="OtpVerify"
+          component={OtpVerifyScreen}
+          options={{ title: 'Verify your email' }}
+        />
+      )}
     </Stack.Navigator>
   );
 }

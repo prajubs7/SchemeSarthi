@@ -31,8 +31,9 @@ SchemeSarthi is a React Native app that helps users in India find government sch
   - Status: `StatusPill`, `Banner` (tones `info`/`warning`/`success`/`accent`/`danger`, optional action and dismiss; also used as the inline snackbar/toast), `ProgressBar`, `StatCard`, `CriteriaRow` (one eligibility criterion: pass/fail/unverified).
   - Data states: `Skeleton`, `SchemeCardSkeleton`, `ListRowSkeleton`, `EmptyState`, `ErrorState` (retry), `LoadingSpinner` (only for the boot splash and in-button work).
   - `tones.ts`: `Tone` → foreground/soft background/solid colour tokens.
+- `src/components/common/`: `AlertProvider` (modal alert dialog; `useAlert()` returns `showAlert({ title, message?, type?, buttons?, dismissable? })` and `hideAlert()`; `type` is `success`/`error`/`warning`/`info`; defaults to a single OK button; must be used inside the provider mounted in `App.tsx`), `AppHeader`, `PasswordInput`, `navHeader`.
 - `src/components/scheme/SchemeListCard.tsx`, `src/components/notifications/NotificationRow.tsx`: domain cards.
-- `src/screens/`: `auth/` (Login, Signup, OtpVerify), `home/` (Home, MatchedSchemes, SchemeDetail), `schemes/`, `bookmarks/`, `notifications/`, `qa/` (SchemeQA chat), `profile/` (Profile, ProfileSetup wizard), `dev/ComponentGallery` (dev builds only).
+- `src/screens/`: `auth/` (Login, Signup), `home/` (Home, MatchedSchemes, SchemeDetail), `schemes/`, `bookmarks/`, `notifications/`, `qa/` (SchemeQA chat), `profile/` (Profile, ProfileSetup wizard), `dev/ComponentGallery` (dev builds only).
 - `src/hooks/`: `useAuth` (single `onAuthStateChange` subscription), `useProfile`, `useSchemeMatches` / `useNearMatches` / `useAllSchemes`, `useBookmarks`, `useNotifications` (+ realtime), `useDocumentChecklist`, `useDebouncedValue`.
 - `src/services/`: Supabase data access (`supabase.ts` client, `profileApi`, `schemesApi`, `bookmarksApi`, `notificationsApi`, `qaApi`).
 - `src/utils/`:
@@ -48,7 +49,7 @@ SchemeSarthi is a React Native app that helps users in India find government sch
 `RootNavigator` (inside `NavigationContainer` with `navigationTheme`) gates on auth and profile:
 
 1. Booting, or signed in with the profile still loading: splash with `LoadingSpinner`. If the profile fails to load: `ErrorState` with retry and a sign-out button.
-2. Signed out: `AuthStack`: `Login` → `Signup` → `OtpVerify { email }`.
+2. Signed out: `AuthStack`: `Login` → `Signup`.
 3. Signed in without age or state: `OnboardingStack`: `ProfileSetup` (wizard, `mode: 'onboarding'`).
 4. Otherwise `AppStack` (root native stack, `RootStackParamList`):
    - `MainTabs` (bottom tabs): `HomeTab`, `SchemeTab { initialCategory? }`, `SavedTab`, `ProfileTab`.
@@ -58,7 +59,7 @@ SchemeSarthi is a React Native app that helps users in India find government sch
 
 ## Main flows
 
-1. **Auth**: email + OTP through Supabase; `useAuth` exposes `session`, `user`, `loading` and `signOut`.
+1. **Auth**: email + password through Supabase (no OTP step; "Confirm email" must be off in the Supabase dashboard); `useAuth` exposes `session`, `user`, `loading` and `signOut`.
 2. **Onboarding/profile**: the `ProfileSetup` wizard writes the profile (and `metadata.age_group`), then calls the `match-schemes` edge function. From Profile, each row reopens the wizard at its step.
 3. **Matching**: `match-schemes` runs `checkEligibility` for every active scheme and stores matches with a `match_reason` per criterion. Schemes that fail exactly one changeable criterion (age within 2 years, income, occupation) are stored as near matches.
 4. **Home**: hero with the match count, stats, category shortcuts, top matches, "Almost eligible" and "Coming up for you", and recent notifications.
@@ -71,7 +72,7 @@ SchemeSarthi is a React Native app that helps users in India find government sch
 ## UI conventions
 
 - **Data states**: every data screen handles loading with a skeleton (`SchemeCardSkeleton`, `ListRowSkeleton` or a screen-shaped `Skeleton` layout), empty (`EmptyState`, with a CTA where useful), error (`ErrorState` with `onRetry` → `refetch`), and pull to refresh where it is a list. There is no offline banner: `@react-native-community/netinfo` was deliberately not added, so offline shows as the error state with retry.
-- **Feedback**: no `Alert.alert` for success. Use an inline `Banner` (or the Bookmarks-style snackbar). `Alert.alert` remains only for the destructive sign-out confirmation and two failure messages (sign-out, profile save).
+- **Feedback**: no `Alert.alert` for success. Use an inline `Banner` (or the Bookmarks-style snackbar). For modal dialogs use `useAlert().showAlert` from `AlertProvider` (currently used by `ProfileSetupScreen`). `AlertProvider` still has hardcoded hex colours and sizes that should move to `src/theme`. `Alert.alert` remains only for the destructive sign-out confirmation and two failure messages (sign-out, profile save).
 - **Accessibility**:
   - Every `Pressable` sets `accessibilityRole` and `accessibilityLabel` (and `accessibilityState` for toggles).
   - Touch targets are ≥ 48dp: `minHeight: sizes.touchTarget`, or `hitSlop` for smaller visuals (`Chip`, `IconButton` 44, `iconHitSlop` for bare icons).

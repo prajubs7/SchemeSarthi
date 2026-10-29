@@ -4,6 +4,7 @@ import { supabase } from '../../services/supabase';
 import { AppText, Banner, Button, TextField } from '../../components/ui';
 import { AuthLayout } from '../../components/auth/AuthLayout';
 import { AuthStackScreenProps } from '../../navigation/types';
+import { APP_CONFIG } from '../../constants/config';
 import { authErrorMessage } from '../../utils/authErrors';
 import {
   PASSWORD_RULE_TEXT,
@@ -78,13 +79,32 @@ export default function SignupScreen({ navigation }: Props) {
       setFormError(authErrorMessage({ code: 'user_already_exists' }));
       return;
     }
-    navigation.navigate('OtpVerify', { email: trimmedEmail });
+    if (APP_CONFIG.otpVerificationEnabled) {
+      navigation.navigate('OtpVerify', { email: trimmedEmail });
+      return;
+    }
+    // With "Confirm email" off in Supabase, signUp returns a session and RootNavigator
+    // moves on to onboarding. If it is still on, there is no session: sign in to surface
+    // the real error (email_not_confirmed) instead of leaving the user on this screen.
+    if (!data.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+      if (signInError) {
+        setFormError(authErrorMessage(signInError));
+      }
+    }
   };
 
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="It takes a minute. We will email you a code to confirm."
+      subtitle={
+        APP_CONFIG.otpVerificationEnabled
+          ? 'It takes a minute. We will email you a code to confirm.'
+          : 'It only takes a minute.'
+      }
       footer={
         <>
           <AppText variant="body" color="textSecondary">
