@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useAlert } from '../../components/common/AlertProvider';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -117,6 +118,7 @@ function pluralSchemes(count: number) {
 
 export default function ProfileScreen({ navigation }: Props) {
   const { user, signOut } = useAuth();
+  const { showAlert } = useAlert();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const profile = useSelector((state: RootState) => state.profile.profile);
@@ -146,22 +148,25 @@ export default function ProfileScreen({ navigation }: Props) {
     navigation.navigate('ProfileSetup', { mode: 'edit', step });
 
   const confirmSignOut = () =>
-    Alert.alert(
-      'Sign out?',
-      "You'll need your email to sign in again. Your profile and saved schemes stay safe.",
-      [
-        { text: 'Cancel', style: 'cancel' },
+    showAlert({
+      type: 'warning',
+      title: 'Sign out?',
+      message:
+        "You'll need your email to sign in again. Your profile and saved schemes stay safe.",
+      buttons: [
+        { text: 'Cancel', variant: 'outline' },
         {
           text: 'Sign out',
-          style: 'destructive',
+          variant: 'primary',
           onPress: async () => {
             try {
               await signOut();
             } catch (err: any) {
-              Alert.alert(
-                "Couldn't sign out",
-                err?.message ?? 'Please try again.',
-              );
+              showAlert({
+                type: 'error',
+                title: "Couldn't sign out",
+                message: err?.message ?? 'Please try again.',
+              });
               return;
             }
             // Signing out swaps to the auth stack; drop everything cached for this user.
@@ -170,7 +175,7 @@ export default function ProfileScreen({ navigation }: Props) {
           },
         },
       ],
-    );
+    });
 
   return (
     <Screen

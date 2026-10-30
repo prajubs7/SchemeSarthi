@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo } from 'react';
-import { Linking, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { getSchemeById, markSchemeViewed } from '../../services/schemesApi';
@@ -219,14 +219,21 @@ export default function SchemeDetailScreen({ route, navigation }: Props) {
     if (!scheme) return;
     const toggleBookmark = () =>
       saved ? removeBookmark(scheme.id) : addBookmark(scheme);
-    const share = () =>
-      Share.share({
-        title: scheme.title,
-        message: officialLink
-          ? `${scheme.title}\n${officialLink}`
-          : scheme.title,
-        url: officialLink ?? undefined,
-      }).catch(() => {});
+    const share = async () => {
+      const message = officialLink
+        ? `${scheme.title}\n${officialLink}`
+        : scheme.title;
+      try {
+        // Android ignores `url`; iOS shows it separately, so only pass it there.
+        await Share.share(
+          Platform.OS === 'ios' && officialLink
+            ? { title: scheme.title, message: scheme.title, url: officialLink }
+            : { title: scheme.title, message },
+        );
+      } catch (e) {
+        if (__DEV__) console.warn('Share failed', e);
+      }
+    };
 
     navigation.setOptions({
       headerRight: renderHeaderActions({
